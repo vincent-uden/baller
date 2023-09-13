@@ -74,5 +74,6 @@ class Hubert3DModel:
         self.fig.canvas.draw_idle()
 
 
-robot_arm = Hubert3DModel()
-plt.show()
+if __name__ == '__main__':
+    robot_arm = Hubert3DModel()
+    plt.show()
