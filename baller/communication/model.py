@@ -1,8 +1,8 @@
 import numpy as np
 import matplotlib.pyplot as plt
 
-from ..utils.hubert.constants import L2, L3, L6, L8, L9
-from ..utils.hubert.forward_kinematics import joint1pos, joint2pos, joint3pos
+from baller.utils.hubert.constants import L2, L3, L6, L8, L9
+from baller.utils.hubert.forward_kinematics import joint1pos, joint2pos, joint3pos
 
 X_MIN = -L6 - L8 - L9
 X_MAX = L6 + L8 + L9
