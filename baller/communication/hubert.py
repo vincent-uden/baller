@@ -28,6 +28,13 @@ class Servo:
         """
         pulse_len = np.interp(angle, self.angles, self.pulses)
         return int(np.round(pulse_len))
+    
+    def pulse_to_angle(self, pulse: int) -> float:
+        """
+        Convert a pulse to an angle by interpolating the pulse
+        """
+        angle = np.interp(pulse, self.pulses, self.angles)
+        return float(angle)
 
 
 class Hubert:
@@ -63,10 +70,31 @@ class Hubert:
         """
         Send a new position to Hubert
         """
+        assert len(joint_angles) == len(self.servos)
         pulse_len = self._convert_angle_to_pulse(joint_angles)
         joint_args = [j.to_bytes(2, 'big') for j in pulse_len]
 
         self._send(HubertCommand.SET_POSITION, *joint_args)
+
+    def get_position(self) -> list[float]:
+        """
+        Get the current position of Hubert
+        """
+        self._send(HubertCommand.GET_POSITION)
+        angles = []
+        for servo in self.servos:
+            bytes = self.arduino.read(size=2)
+            pulse_len = int.from_bytes(bytes, byteorder='big')
+            angle = servo.pulse_to_angle(pulse_len)
+            angles.append(angle)
+        return angles
+    
+    def get_status(self) -> str:
+        """
+        Get the status of Hubert
+        """
+        self._send(HubertCommand.GET_STATUS)
+        return self.arduino.readline().decode('utf-8')
 
     def _send(self, cmd: HubertCommand, *args: bytes):
         """
