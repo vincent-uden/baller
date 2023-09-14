@@ -83,9 +83,9 @@ class SliderWindow:
         self.callbacks.append(func)
 
     def _callback(self, val):
-        slider_vals = {s.name: s.val for s in self.sliders}
+        slider_vals = [s.val for s in self.sliders]
         for callback in self.callbacks:
-            callback(**slider_vals)
+            callback(slider_vals)
 
     
 if __name__ == '__main__':

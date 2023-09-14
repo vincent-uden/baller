@@ -63,9 +63,9 @@ class Hubert3DModel:
 
         return [x0, x1, x2, x3, x4], [y0, y1, y2, y3, y4], [z0, z1, z2, z3, z4]
 
-    def move_arm(self, j1: float, j2: float, j3: float):
+    def move_arm(self, joint_angles: list[float]):
         # Get the arm position
-        x, y, z = self.arm_pos(j1, j2, j3)
+        x, y, z = self.arm_pos(*joint_angles[:3])
 
         self.line[0].set_xdata(x)
         self.line[0].set_ydata(y)
