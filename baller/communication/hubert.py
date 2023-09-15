@@ -35,6 +35,9 @@ class Servo:
         """
         angle = np.interp(pulse, self.pulses, self.angles)
         return float(angle)
+    
+    def servo_range(self):
+        return np.min(self.angles), np.max(self.angles)
 
 
 class Hubert:

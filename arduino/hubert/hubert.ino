@@ -1,20 +1,3 @@
-/*
-  Hubert robot test program.
-
-  This sketch control Hubert's servos.  
-  A write.microseconds value in approx. [500,2350], mid pos.: 1350
-  NOTE: Go back to NeutralPos. before terminating.
-  
-  created 20 Jul 2020
-  by Krister Wolff
-  modified 20 Jul 2020
-  by Krister Wolff
-
-  This example code is in the public domain.
-
-  http://www.arduino.cc/en/
-*/
-
 #define N_SERVOS 5 // We are not using the gripper
 
 #include <Arduino.h>
@@ -25,21 +8,21 @@ Servo servos[N_SERVOS];
 const int servo_pins[N_SERVOS] = {3, 9, 10, 5, 6};
 
 // Servo position
-int init_pos[N_SERVOS] = {1700, 1500, 2000, 2200, 1650};
+int init_pos[N_SERVOS] = {1600, 2200, 1410, 1500, 2100};
 int curr_pos[N_SERVOS];
 int move_pos[N_SERVOS];
 float servo_vel[N_SERVOS];
 float curr_pos_float[N_SERVOS];
 
 // Servo speed
-int steps_per_epoch = 100;
+int steps_per_epoch = 6;
 
 // Servo limits
 const int pos_min[N_SERVOS] = {560, 750, 550, 550, 950};
 const int pos_max[N_SERVOS] = {2330, 2200, 2400, 2340, 2400};
 
 // Timings
-const long interval = 1000;           // Servos operate on 50Hz -> delay of 20 ms
+const long interval = 20;           // Servos operate on 50Hz -> delay of 20 ms
 unsigned long previousMillis = 0;   // Will store the previous time the servos were updated
 
 // Flags
@@ -185,6 +168,11 @@ void setup() {
 	//Attach each joint servo
   for ( byte i = 0; i < N_SERVOS; i++ ) {
     servos[i].attach(servo_pins[i]);
+  }
+
+  for ( byte i = 0; i < N_SERVOS; i++ ) {
+    curr_pos[i] = init_pos[i];
+    move_pos[i] = init_pos[i];
   }
 }
 
