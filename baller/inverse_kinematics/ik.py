@@ -1,10 +1,13 @@
 import numpy as np
-from scipy.optimize import fsolve
+from scipy.optimize import fsolve, minimize
 
 from baller.utils.hubert.constants import *
+from baller.utils.hubert.forward_kinematics import launcher_pos
+from baller.trajectory_solver.trajectory_solver import trajectory_solver
 
 
 LAUNCH_PLANE_OFFSET = L4 - L5
+PITCH_OFFSET = 0
 
 
 def calculate_yaw_angle(x: float, y: float) -> float:
@@ -37,7 +40,7 @@ def calculate_yaw_angle(x: float, y: float) -> float:
     yaw, _, flag, msg = fsolve(func, yaw0, full_output=True, maxfev=1000)
 
     if flag == 1:
-        return yaw
+        return yaw[0]
 
     raise RuntimeError(f"Could not find a valid yaw angle. Failed with message:\n{msg}")
 
@@ -57,3 +60,19 @@ def target_pos_to_joint_angles(x: float, y: float, z: float) -> tuple[float, flo
     - elbow rotation (float):       The rotation of the elbow joint
     """
     yaw = calculate_yaw_angle(x, y)
+
+    def func(js):
+        xl, yl, zl = launcher_pos(yaw, js[0], js[1])
+        pitch = js[0] + js[1] + PITCH_OFFSET
+        xt, _, zt = trajectory_solver(xl, yl, zl, pitch, yaw, target_plane=y)
+        return (xt - x)**2 + (zt - z)**2
+    
+    res = minimize(func, [0.0, 0.0])
+
+    dist = np.sqrt(func(res.x))
+
+    if dist < 0.01:
+        sholder, elbow = res.x
+        return yaw, sholder, elbow
+    
+    raise RuntimeError(f"Best solution misses with {dist*100} cm")
