@@ -7,10 +7,10 @@ from baller.inverse_kinematics.ik import calculate_yaw_angle, LAUNCH_PLANE_OFFSE
 @pytest.mark.parametrize(
         ("x", "y", "expected_yaw"),
         (
-            (LAUNCH_PLANE_OFFSET, 1.0, 0.0),
-            (0.0, np.sqrt(2) * LAUNCH_PLANE_OFFSET, np.pi / 4),
-            (1e10, 1.0, -np.pi / 2),
-            (-1e10, 1.0, np.pi / 2),
+            (1.0, -LAUNCH_PLANE_OFFSET, 0.0),
+            (np.sqrt(2) * LAUNCH_PLANE_OFFSET, 0.0, np.pi / 4),
+            (1.0, 1e10, np.pi / 2),
+            (1.0, -1e10, -np.pi / 2),
         )
 )
 def test_yaw_angle(x, y, expected_yaw):

@@ -16,26 +16,26 @@ def trajectory_solver(x: float, y: float, z: float, pitch: float, yaw: float, ta
     - z (float):            The z-coordinate of the launch position given in world coordinates (measured in meters)
     - pitch (float):        The pitch of the launch (up-down) (measured in radians)
     - yaw: (float):         The yaw of the launch (left-right) (measured in radians)
-    - target_plane (float): The target is assumed to be located at y=target_plane
+    - target_plane (float): The target is assumed to be located at x=target_plane
 
     Returns:
-    - xp (float):           The x-coordinate of the projectile in the target plane
-    - yp (float):           The y-coordinate of the projectile in the target plane (always equal to target_plane)
+    - xp (float):           The x-coordinate of the projectile in the target plane (always equal to target_plane)
+    - yp (float):           The y-coordinate of the projectile in the target plane
     - zp (float):           The z-coordinate of the projectile in the target plane
     """
-    assert target_plane > y, "This algorithm assumes that the target plane is further away than the launch position"
+    assert target_plane > x, "This algorithm assumes that the target plane is further away than the launch position"
 
-    vx = V0 * np.sin(yaw) * np.cos(pitch)
-    vy = V0 * np.cos(yaw) * np.cos(pitch)
+    vx = V0 * np.cos(yaw) * np.cos(pitch)
+    vy = V0 * np.sin(yaw) * np.cos(pitch)
     vz = V0 * np.sin(pitch)
 
-    assert vy > 0, "Projectile will never hit target"
+    assert vx > 0, "Projectile will never hit target"
 
     # Calculate time of flight
-    dy = target_plane - y
-    t = dy / vy
+    dx = target_plane - x
+    t = dx / vx
 
-    xf = x + vx * t
+    yf = y + vy * t
     zf = z + vz * t - g * t**2 / 2
 
-    return xf, target_plane, zf
+    return target_plane, yf, zf

@@ -21,10 +21,10 @@ def calculate_yaw_angle(x: float, y: float) -> float:
     Returns:
     - yaw (float):  The yaw angle of Hubert in radians
     """
-    assert y > LAUNCH_PLANE_OFFSET, "This function assumes the target plane is far away. The given y-coordinate does not satisfy this condition"
+    assert x > LAUNCH_PLANE_OFFSET, "This function assumes the target plane is far away. The given x-coordinate does not satisfy this condition"
 
     r_sq = x**2 + y**2
-    sina = (LAUNCH_PLANE_OFFSET*y - x * np.sqrt(r_sq - LAUNCH_PLANE_OFFSET**2)) / r_sq
+    sina = (LAUNCH_PLANE_OFFSET*x + y * np.sqrt(r_sq - LAUNCH_PLANE_OFFSET**2)) / r_sq
     return np.arcsin(sina)
 
 
