@@ -1,11 +1,15 @@
 import numpy as np
 
+from baller.utils.hubert.forward_kinematics import launcher_pos
 
-V0 = 1.0    # m/s
+
+V0 = 10.0    # m/s
 g = 9.82    # m/s^2
 
+PITCH_OFFSET = np.pi / 2
 
-def trajectory_solver(x: float, y: float, z: float, pitch: float, yaw: float, target_plane: float) -> tuple[float, float, float]:
+
+def trajectory_solver_from_launcher_pos(x: float, y: float, z: float, pitch: float, yaw: float, target_plane: float) -> tuple[float, float, float]:
     """
     Solve for the trajectory of a projectile launched from position (x, y, z) with given pitch and yaw angles.
     Return the coordinates of the projectile when it passes the target_plane.
@@ -39,3 +43,9 @@ def trajectory_solver(x: float, y: float, z: float, pitch: float, yaw: float, ta
     zf = z + vz * t - g * t**2 / 2
 
     return target_plane, yf, zf
+
+
+def trajectory_solver_from_joints(j1: float, j2: float, j3: float, target_plane: float) -> tuple[float, float, float]:
+    xl, yl, zl = launcher_pos(j1, j2, j3)
+    pitch = j2 + j3 + PITCH_OFFSET - np.pi / 2
+    return trajectory_solver_from_launcher_pos(xl, yl, zl, pitch, j1, target_plane=target_plane)

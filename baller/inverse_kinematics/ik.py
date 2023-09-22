@@ -1,13 +1,8 @@
 import numpy as np
-from scipy.optimize import fsolve, minimize
+from scipy.optimize import minimize
 
-from baller.utils.hubert.constants import *
-from baller.utils.hubert.forward_kinematics import launcher_pos
-from baller.trajectory_solver.trajectory_solver import trajectory_solver
-
-
-LAUNCH_PLANE_OFFSET = L4 - L5
-PITCH_OFFSET = 0
+from baller.utils.hubert.constants import LAUNCH_PLANE_OFFSET
+from baller.trajectory_solver.trajectory_solver import trajectory_solver_from_joints
 
 
 def calculate_yaw_angle(x: float, y: float) -> float:
@@ -45,10 +40,8 @@ def target_pos_to_joint_angles(x: float, y: float, z: float) -> tuple[float, flo
     yaw = calculate_yaw_angle(x, y)
 
     def func(js):
-        xl, yl, zl = launcher_pos(yaw, js[0], js[1])
-        pitch = js[0] + js[1] + PITCH_OFFSET
-        xt, _, zt = trajectory_solver(xl, yl, zl, pitch, yaw, target_plane=y)
-        return (xt - x)**2 + (zt - z)**2
+        _, yt, zt = trajectory_solver_from_joints(yaw, js[0], js[1], target_plane=x)
+        return (yt - y)**2 + (zt - z)**2
     
     res = minimize(func, [0.0, 0.0])
 
@@ -59,3 +52,7 @@ def target_pos_to_joint_angles(x: float, y: float, z: float) -> tuple[float, flo
         return yaw, sholder, elbow
     
     raise RuntimeError(f"Best solution misses with {dist*100} cm")
+
+
+if __name__ == '__main__':
+    print(target_pos_to_joint_angles(1.0, 0.0, 0.2))
