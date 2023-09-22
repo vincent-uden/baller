@@ -23,26 +23,9 @@ def calculate_yaw_angle(x: float, y: float) -> float:
     """
     assert y > LAUNCH_PLANE_OFFSET, "This function assumes the target plane is far away. The given y-coordinate does not satisfy this condition"
 
-    # Remove the special case of a vertical line
-    if np.isclose(x, LAUNCH_PLANE_OFFSET):
-        return 0.0
-
-    def func(yaw):
-        # Check if (x, y) is in the launc plane
-        beta = np.pi / 2 - yaw
-        k = np.tan(beta)
-        m = -LAUNCH_PLANE_OFFSET * np.sin(yaw) - k * LAUNCH_PLANE_OFFSET * np.cos(yaw)
-        return k * x - y + m
-    
-    # Discontinuity at yaw = 0
-    # To avoid problems yaw0 must be on the correct side from start
-    yaw0 = -0.1 if x < LAUNCH_PLANE_OFFSET else 0.1
-    yaw, _, flag, msg = fsolve(func, yaw0, full_output=True, maxfev=1000)
-
-    if flag == 1:
-        return yaw[0]
-
-    raise RuntimeError(f"Could not find a valid yaw angle. Failed with message:\n{msg}")
+    r_sq = x**2 + y**2
+    sina = (LAUNCH_PLANE_OFFSET*y - x * np.sqrt(r_sq - LAUNCH_PLANE_OFFSET**2)) / r_sq
+    return np.arcsin(sina)
 
 
 def target_pos_to_joint_angles(x: float, y: float, z: float) -> tuple[float, float, float]:
