@@ -1,8 +1,8 @@
 import matplotlib.pyplot as plt
 
-from baller.communication.slider import SliderWindow
+from baller.model.slider import SliderWindow
 from baller.model.model import Hubert3DModel
-from hubert import Servo, Hubert
+from baller.communication.hubert import Servo, Hubert
 import time
 
 
@@ -34,8 +34,8 @@ hubert.connect()
 for i in range(len(servos)):
     sw.add_slider(f'j{i+1}', *servos[i].servo_range(), 0)
 
-sw.add_callback(model.move_arm)
-sw.add_callback(hubert.set_position)
+sw.add_slider_callback(model.move_arm)
+sw.add_slider_callback(hubert.set_position)
 sw.draw()
 
 plt.show(block=False)

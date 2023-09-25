@@ -14,15 +14,37 @@ Z_MIN = 0
 Z_MAX = L2 + L3 + L8 + L9
 
 
-class Hubert3DModel:
+class Model3D:
 
-    def __init__(self, j1: float = 0, j2: float = 0, j3: float = 0, ax = None, fig = None, color: str = 'b'):
-        """
-        Joint angles are given in degrees
-        """
+    def __init__(self, ax = None, fig = None, color: str = 'b', linestyle: str = '-') -> None:
         # Create a figure and 3D axis
         self.fig = fig or plt.figure(figsize=(8, 6))
         self.ax = ax or self.fig.add_subplot(111, projection='3d')
+
+        self.color = color
+        self.linestyle = linestyle
+
+        self.visable = True
+
+        self.artist = None
+
+    def update_canvas(self):
+        self.fig.canvas.draw_idle()
+
+    def toggle_visability(self):
+        self.visable = not self.visable
+        if self.artist is not None:
+            self.artist[0].set_visible(self.visable)
+            self.update_canvas()
+
+
+class Hubert3DModel(Model3D):
+
+    def __init__(self, j1: float = 0, j2: float = 0, j3: float = 0, ax = None, fig = None, color: str = 'b', linestyle: str = '-'):
+        """
+        Joint angles are given in degrees
+        """
+        super().__init__(ax=ax, fig=fig, color=color, linestyle=linestyle)
 
         # Set axis labels
         self.ax.set_xlabel('X [m]')
@@ -42,7 +64,7 @@ class Hubert3DModel:
         x, y, z = self.arm_pos(j1, j2, j3)
 
         # Plot the initial lines with three segments
-        self.line = self.ax.plot(x, y, z, color=color, linewidth=2)
+        self.artist = self.ax.plot(x, y, z, color=self.color, linewidth=2, linestyle=self.linestyle)
 
     def arm_pos(self, j1: Optional[float], j2: Optional[float], j3: Optional[float]):
         """
@@ -72,26 +94,25 @@ class Hubert3DModel:
         # Get the arm position
         x, y, z = self.arm_pos(*joint_angles[:3])
 
-        self.line[0].set_xdata(x)
-        self.line[0].set_ydata(y)
-        self.line[0].set_3d_properties(z)
+        self.artist[0].set_xdata(x)
+        self.artist[0].set_ydata(y)
+        self.artist[0].set_3d_properties(z)
 
-        self.fig.canvas.draw_idle()
+        self.update_canvas()
 
 
-class Launcher3DModel:
+class Launcher3DModel(Model3D):
 
-    def __init__(self, hubert: Hubert3DModel, target_plane: float, ax, fig) -> None:
+    def __init__(self, hubert: Hubert3DModel, target_plane: float, ax, fig, color: str = 'g', linestyle: str = '--') -> None:
+        
+        super().__init__(ax=ax, fig=fig, color=color, linestyle=linestyle)
+
         self.hubert = hubert
         self.target_plane = target_plane
 
-        # Create a figure and 3D axis
-        self.fig = fig
-        self.ax = ax
-
         x, y, z = self.parabola()
 
-        self.line = self.ax.plot(x, y, z, color='g', linestyle='--')
+        self.artist = self.ax.plot(x, y, z, color=self.color, linestyle=self.linestyle)
 
     def parabola(self) -> tuple[list[float], list[float], list[float]]:
         hand_x, hand_y, hand_z = joint3pos(self.hubert.j1, self.hubert.j2, self.hubert.j3)
@@ -100,10 +121,10 @@ class Launcher3DModel:
         yaw = self.hubert.j1
 
         xs = np.linspace(hand_x, self.target_plane)
-        ys = []
-        zs = []
-        for x in xs:
-            _, y, z = trajectory_solver_from_launcher_pos(hand_x, hand_y, hand_z, pitch=pitch, yaw=yaw, target_plane=self.target_plane)
+        ys = [hand_y]
+        zs = [hand_z]
+        for x in xs[1:]:
+            _, y, z = trajectory_solver_from_launcher_pos(hand_x, hand_y, hand_z, pitch=pitch, yaw=yaw, target_plane=x)
             ys.append(y)
             zs.append(z)
         
@@ -113,11 +134,11 @@ class Launcher3DModel:
         # Get the arm position
         x, y, z = self.parabola()
 
-        self.line[0].set_xdata(x)
-        self.line[0].set_ydata(y)
-        self.line[0].set_3d_properties(z)
+        self.artist[0].set_xdata(x)
+        self.artist[0].set_ydata(y)
+        self.artist[0].set_3d_properties(z)
 
-        self.fig.canvas.draw_idle()
+        self.update_canvas()
 
 
 if __name__ == '__main__':
@@ -128,4 +149,5 @@ if __name__ == '__main__':
     robot_arm = Hubert3DModel(ax=ax, fig=fig)
     extra_robot_arm = Hubert3DModel(ax=ax, fig=fig, j1=90, color='r')
     launcher = Launcher3DModel(robot_arm, 1.0, ax, fig)
+    launcher2 = Launcher3DModel(extra_robot_arm, 1.0, ax, fig, color='orange')
     plt.show()
