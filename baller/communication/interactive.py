@@ -1,7 +1,7 @@
 import matplotlib.pyplot as plt
 
 from baller.communication.slider import SliderWindow
-from baller.communication.model import Hubert3DModel
+from baller.model.model import Hubert3DModel
 from hubert import Servo, Hubert
 import time
 

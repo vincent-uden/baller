@@ -14,13 +14,13 @@ Z_MAX = L2 + L3 + L8 + L9
 
 class Hubert3DModel:
 
-    def __init__(self, j1: float = 0, j2: float = 0, j3: float = 0):
+    def __init__(self, j1: float = 0, j2: float = 0, j3: float = 0, ax = None, fig = None, color: str = 'b'):
         """
         Joint angles are given in degrees
         """
         # Create a figure and 3D axis
-        self.fig = plt.figure(figsize=(8, 6))
-        self.ax = self.fig.add_subplot(111, projection='3d')
+        self.fig = fig or plt.figure(figsize=(8, 6))
+        self.ax = ax or self.fig.add_subplot(111, projection='3d')
 
         # Set axis labels
         self.ax.set_xlabel('X [m]')
@@ -40,7 +40,7 @@ class Hubert3DModel:
         x, y, z = self.arm_pos(j1, j2, j3)
 
         # Plot the initial lines with three segments
-        self.line = self.ax.plot(x, y, z, color='b', linewidth=2)
+        self.line = self.ax.plot(x, y, z, color=color, linewidth=2)
 
     def arm_pos(self, j1: float = 0, j2: float = 0, j3: float = 0):
         """
@@ -75,5 +75,10 @@ class Hubert3DModel:
 
 
 if __name__ == '__main__':
-    robot_arm = Hubert3DModel()
+
+    fig = plt.figure(figsize=(8, 6))
+    ax = fig.add_subplot(111, projection='3d')
+
+    robot_arm = Hubert3DModel(ax=ax, fig=fig)
+    extra_robot_arm = Hubert3DModel(ax=ax, fig=fig, j1=90, color='r')
     plt.show()
