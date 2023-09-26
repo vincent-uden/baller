@@ -54,7 +54,7 @@ def parse_args() -> Namespace:
     parser.add_argument('-p', '--port', help="USB port that Hubert is connected to")
     parser.add_argument('-b', '--baudrate', default=57600, type=int, help="Baudrate of the serial communication")
     parser.add_argument('--conf', action=NotImplementedAction, help="Read connection details from configuration file. Not implemented yet")
-    parser.add_argument('-v', '--visual-mode', action='store_true', help="Open a window that displays Huberts real time position")
+    parser.add_argument('-v', '--visual-mode', action='store_true', help="Open a window that displays Huberts real time position (only takes effect if Hubert is connected)")
     parser.add_argument('-i', '--interactive', action='store_true', help="Start an interactive session")
     parser.add_argument('-t', '--target-plane', type=float, help="Add a target plane at x = [target-plane]. Also adds sliders for the target position. (Overrides interactive)")
 
@@ -113,7 +113,7 @@ def main():
         ax = None if hubert_model is None else hubert_model.ax
         hubert_pose = Hubert3DModel(ax=ax, fig=fig, color='orange', linestyle='--')
 
-        timer = fig.canvas.new_timer(interval=1000)
+        timer = fig.canvas.new_timer(interval=50)
         timer.add_callback(get_pos_callback)
         timer.start()
     
