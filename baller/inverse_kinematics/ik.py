@@ -1,5 +1,6 @@
 import numpy as np
 from scipy.optimize import minimize
+from typing import Optional
 
 from baller.utils.hubert.constants import LAUNCH_PLANE_OFFSET
 from baller.trajectory_solver.trajectory_solver import trajectory_solver_from_joints
@@ -23,7 +24,14 @@ def calculate_yaw_angle(x: float, y: float) -> float:
     return np.arcsin(sina)
 
 
-def target_pos_to_joint_angles(x: float, y: float, z: float) -> tuple[float, float, float]:
+def target_pos_to_joint_angles(
+        x: float,
+        y: float,
+        z: float,
+        j1: Optional[float] = None,
+        j2: Optional[float] = None,
+        j3: Optional[float] = None,
+    ) -> tuple[float, float, float]:
     """
     Given a target position return the corresponding joint angles
 
@@ -43,7 +51,12 @@ def target_pos_to_joint_angles(x: float, y: float, z: float) -> tuple[float, flo
         _, yt, zt = trajectory_solver_from_joints(yaw, js[0], js[1], target_plane=x)
         return (yt - y)**2 + (zt - z)**2
     
-    res = minimize(func, [0.0, 0.0])
+    if j2 is None:
+        j2 = 0.0
+    if j3 is None:
+        j3 = 0.0
+
+    res = minimize(func, [j2, j3])
 
     dist = np.sqrt(func(res.x))
 

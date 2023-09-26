@@ -134,13 +134,20 @@ class SliderWindow:
         """
         Add a callback
         Must be called after draw, oterwise a RuntimeError will be raised
+        When calling the callback all slider values will be given as arguments by unpacking
+        a dictionary with keys given by the slider name and values being the slider values.
+
+        Ex:
+            Given a slider window with 3 sliders "x", "y" and "z" the callsignature should be
+            func(x: float, y: float, z: float, **_)
+            The extra **_ is optional but recomended if you add more sliders for some reason
         """
         self.slider_callbacks.append(func)
 
     def _slider_callback(self, val):
-        slider_vals = [s.val for s, _ in self.widgets if isinstance(s, Slider)]
+        slider_vals = {s.name: s.val for s, _ in self.widgets if isinstance(s, Slider)}
         for callback in self.slider_callbacks:
-            callback(slider_vals)
+            callback(**slider_vals)
 
     
 if __name__ == '__main__':

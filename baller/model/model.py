@@ -1,6 +1,6 @@
 import numpy as np
 import matplotlib.pyplot as plt
-from typing import Optional
+from typing import Optional, Literal
 
 from baller.utils.hubert.constants import L2, L3, L6, L8, L9
 from baller.utils.hubert.forward_kinematics import joint1pos, joint2pos, joint3pos
@@ -61,22 +61,28 @@ class Hubert3DModel(Model3D):
         self.j3 = j3
 
         # Get the inital arm position
-        x, y, z = self.arm_pos(j1, j2, j3)
+        x, y, z = self.arm_pos()
 
         # Plot the initial lines with three segments
         self.artist = self.ax.plot(x, y, z, color=self.color, linewidth=2, linestyle=self.linestyle)
 
-    def arm_pos(self, j1: Optional[float], j2: Optional[float], j3: Optional[float]):
+    def get_pose(self, units: Literal['rad', 'deg'] = 'rad') -> tuple[float, float, float]:
+        if units == 'deg':
+            j1 = np.rad2deg(self.j1)
+            j2 = np.rad2deg(self.j2)
+            j3 = np.rad2deg(self.j3)
+        else:
+            j1 = self.j1
+            j2 = self.j2
+            j3 = self.j3
+
+        return j1, j2, j3
+
+
+    def arm_pos(self):
         """
         Return the x, y and z positoin of all joints in three lists
         """
-        if j1 is not None:
-            self.j1 = np.deg2rad(j1)
-        if j2 is not None:
-            self.j2 = np.deg2rad(j2)
-        if j3 is not None:
-            self.j3 = np.deg2rad(j3)
-
         joint1 = joint1pos(self.j1)
         joint2 = joint2pos(self.j1, self.j2)
         joint3 = joint3pos(self.j1, self.j2, self.j3)
@@ -90,9 +96,19 @@ class Hubert3DModel(Model3D):
 
         return [x0, x1, x2, x3, x4], [y0, y1, y2, y3, y4], [z0, z1, z2, z3, z4]
 
-    def move_arm(self, joint_angles: list[float]):
+    def move_arm(self, j1: float, j2: float, j3: float, units: Literal['rad', 'deg'] = 'rad', **_):
         # Get the arm position
-        x, y, z = self.arm_pos(*joint_angles[:3])
+
+        if units == 'deg':
+            self.j1 = np.deg2rad(j1)
+            self.j2 = np.deg2rad(j2)
+            self.j3 = np.deg2rad(j3)
+        else:
+            self.j1 = j1
+            self.j2 = j2
+            self.j3 = j3
+
+        x, y, z = self.arm_pos()
 
         self.artist[0].set_xdata(x)
         self.artist[0].set_ydata(y)
@@ -130,8 +146,11 @@ class Launcher3DModel(Model3D):
         
         return xs.tolist(), ys, zs
     
-    def move_launcher(self):
-        # Get the arm position
+    def move_launcher(self, target_plane: Optional[float] = None):
+        # Get the arm position'
+        if target_plane is not None:
+            self.target_plane = target_plane
+
         x, y, z = self.parabola()
 
         self.artist[0].set_xdata(x)

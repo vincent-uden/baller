@@ -50,6 +50,8 @@ class Hubert:
 
         self.arduino: Optional[serial.Serial] = None
 
+        self.joint_angles = {f'j{i+1}': 0.0 for i in range(len(self.servos))}
+
     def connect(self):
         if self.status != HubertStatus.NOT_CONNECTED:
             raise RuntimeError("Hubert has already established a connection")
@@ -69,10 +71,19 @@ class Hubert:
             return HubertStatus.NOT_CONNECTED
         return HubertStatus.IDLE
     
-    def set_position(self, joint_angles: list[float]):
+    def set_position(self, **joints: float):
         """
         Send a new position to Hubert
+
         """
+        # Update joint angles
+        for j, v in joints.items():
+            if j not in self.joint_angles:
+                raise KeyError(f"The joint {j} is not a valid joint")
+            self.joint_angles[j] = v
+
+        joint_angles = [self.joint_angles[f'j{i+1}'] for i in range(len(self.joint_angles))]
+
         assert len(joint_angles) == len(self.servos)
         pulse_len = self._convert_angle_to_pulse(joint_angles)
         joint_args = [j.to_bytes(2, 'big') for j in pulse_len]
