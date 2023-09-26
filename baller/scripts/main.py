@@ -31,7 +31,16 @@ def ik_callback(x: float, y: float, z: float, **_) -> None:
     launcher.move_launcher(target_plane=x)
 
     if hubert_com is not None:
-        hubert_com.set_position(j1=j1, j2=j2, j3=j3)
+        j1_deg, j2_deg, j3_deg = hubert_model.get_pose(units='deg')
+        hubert_com.set_position(j1=j1_deg, j2=j2_deg, j3=j3_deg)
+
+
+def get_pos_callback() -> None:
+    assert hubert_com is not None
+    assert hubert_pose is not None
+
+    joints = hubert_com.get_position()
+    hubert_pose.move_arm(j1=joints[0], j2=joints[1], j3=joints[2], units='deg')
 
 
 class NotImplementedAction(Action):
@@ -54,7 +63,7 @@ def parse_args() -> Namespace:
 
 servos = [
     Servo([-90, 0, 45], [700, 1600, 2070]),
-    Servo([-90, 0], [1350, 2200]),
+    Servo([0, 90], [1350, 2200]),
     Servo([0, 90], [1410, 2400]),
     Servo([-90, 0], [600, 1500]),
     Servo([-90, 0], [1170, 2100]),
@@ -104,8 +113,9 @@ def main():
         ax = None if hubert_model is None else hubert_model.ax
         hubert_pose = Hubert3DModel(ax=ax, fig=fig, color='orange', linestyle='--')
 
-        # Todo: Fix a callback that updates the posiont with hubert_com.get_position
-        raise NotImplementedError("This functionality has not yet been implemented")
+        timer = fig.canvas.new_timer(interval=1000)
+        timer.add_callback(get_pos_callback)
+        timer.start()
     
     if sw is not None:
         sw.draw()

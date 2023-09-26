@@ -2,6 +2,8 @@ import serial
 from enum import Enum, auto
 from typing import Optional
 import numpy as np
+from threading import Lock
+import time
 
 
 class HubertStatus(Enum):
@@ -52,11 +54,21 @@ class Hubert:
 
         self.joint_angles = {f'j{i+1}': 0.0 for i in range(len(self.servos))}
 
+        self.arduino_lock = Lock()
+
     def connect(self):
         if self.status != HubertStatus.NOT_CONNECTED:
             raise RuntimeError("Hubert has already established a connection")
         
         self.arduino = serial.Serial(port=self.port, baudrate=self.baudrate, timeout=self.timeout)
+        
+        # Wait for the serial connection to be ready
+        time.sleep(1.0)
+
+        # Clear all buffers
+        self.arduino.reset_input_buffer()
+        self.arduino.reset_output_buffer()
+        
 
     @property
     def status(self):
@@ -88,18 +100,23 @@ class Hubert:
         pulse_len = self._convert_angle_to_pulse(joint_angles)
         joint_args = [j.to_bytes(2, 'big') for j in pulse_len]
 
-        self._send(HubertCommand.SET_POSITION, *joint_args)
+        with self.arduino_lock:
+            self._send(HubertCommand.SET_POSITION, *joint_args)
 
     def get_position(self) -> list[float]:
         """
         Get the current position of Hubert
         """
-        self._send(HubertCommand.GET_POSITION)
         angles = []
-        for servo in self.servos:
-            bytes = self.arduino.read(size=2)
-            pulse_len = int.from_bytes(bytes, byteorder='big')
-            angle = servo.pulse_to_angle(pulse_len)
+
+        with self.arduino_lock:
+            self._send(HubertCommand.GET_POSITION)
+            bs = self._read(2 * len(self.servos))
+
+        for i in range(len(self.servos)):
+            b = bs[2*i:2*i+2]
+            pulse_len = int.from_bytes(b, byteorder='big')
+            angle = self.servos[i].pulse_to_angle(pulse_len)
             angles.append(angle)
         return angles
     
@@ -107,13 +124,16 @@ class Hubert:
         """
         Get the status of Hubert
         """
-        self._send(HubertCommand.GET_STATUS)
-        return self.arduino.readline().decode('utf-8')
+        with self.arduino_lock:
+            self._send(HubertCommand.GET_STATUS)
+            return self._readline()
 
     def _send(self, cmd: HubertCommand, *args: bytes):
         """
         Send bytes to Hubert
         """
+        assert self.arduino_lock.locked(), "You must lock the arduino before comunicaiton"
+
         if self.status == HubertStatus.NOT_CONNECTED:
             raise RuntimeError("Hubert is not connected")
         
@@ -122,6 +142,19 @@ class Hubert:
             msg.extend(arg)
 
         self.arduino.write(msg)
+
+    def _read(self, n: int) -> bytes:
+        """
+        Read n bytes from Hubert
+        """
+        assert self.arduino_lock.locked(), "You must lock the arduino before comunicaiton"
+        bs = self.arduino.read(size=n)
+        return bs
+    
+    def _readline(self) -> str:
+        assert self.arduino_lock.locked(), "You must lock the arduino before comunicaiton"
+        bs = self.arduino.readline()
+        return bs.decode('utf-8')
 
     def _convert_angle_to_pulse(self, joint_angles: list[float]) -> list[int]:
         return [servo.angle_to_pulse(angle) for servo, angle in zip(self.servos, joint_angles)]

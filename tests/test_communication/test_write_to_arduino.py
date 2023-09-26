@@ -17,7 +17,8 @@ def test_send(mocker, cmd):
     hubert.arduino = mock_arduino
 
     # Try to send a message
-    hubert._send(cmd)
+    with hubert.arduino_lock:
+        hubert._send(cmd)
 
     # Assert that we tried to write to the arduino
     expected = bytearray(chr(cmd.value).encode('utf-8'))
