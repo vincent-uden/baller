@@ -21,8 +21,18 @@ class HubertCommand(Enum):
 class Servo:
 
     def __init__(self, angles: list[float], pulses: list[int]) -> None:
+        assert len(angles) == len(pulses), "Angles and pulses must be the same length"
+        assert len(angles) > 1, "You must provide more than one value"
+        assert np.all(np.diff(angles) > 0), "Angles must be increasing"
+
         self.angles = angles
         self.pulses = pulses
+
+        pulses_decresing = pulses[1] < pulses[0]   # Check if pulses is decreasing, then they must be reversed
+        self.rev_angles = list(reversed(angles)) if pulses_decresing else angles
+        self.rev_pulses = list(reversed(pulses)) if pulses_decresing else pulses
+
+        assert np.all(np.diff(self.rev_pulses) > 0), "Pulses could not be converted to an increasing list"
 
     def angle_to_pulse(self, angle: float) -> int:
         """
@@ -35,7 +45,7 @@ class Servo:
         """
         Convert a pulse to an angle by interpolating the pulse
         """
-        angle = np.interp(pulse, self.pulses, self.angles)
+        angle = np.interp(pulse, self.rev_pulses, self.rev_angles)
         return float(angle)
     
     def servo_range(self):
