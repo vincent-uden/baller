@@ -7,6 +7,9 @@
 Servo servos[N_SERVOS];
 const int servo_pins[N_SERVOS] = {3, 9, 10, 5, 6};
 
+Servo launcher;
+const int launcher_pin = 11;
+
 // Servo position
 int init_pos[N_SERVOS] = {1600, 2200, 1410, 1500, 2100};
 int curr_pos[N_SERVOS];
@@ -14,8 +17,16 @@ int move_pos[N_SERVOS];
 float servo_vel[N_SERVOS];
 float curr_pos_float[N_SERVOS];
 
+// Launcher position
+const int launcher_min = 550;
+const int launcher_max = 2150;
+int launcher_pos = launcher_min;
+int launcher_target = launcher_min;
+int launcher_vel;
+const int launcher_steps_per_epoch = 12;
+
 // Servo speed
-int steps_per_epoch = 6;
+const int steps_per_epoch = 6;
 
 // Servo limits
 const int pos_min[N_SERVOS] = {560, 750, 550, 550, 950};
@@ -27,6 +38,11 @@ unsigned long previousMillis = 0;   // Will store the previous time the servos w
 
 // Flags
 bool targetUpdate = false;
+bool launching = false;
+
+// Status flags
+const unsigned char LAUNCH_FLAG = 1;
+const unsigned char MOVE_FLAG = 1 << 1;
 
 
 bool time_to_update_servo() {
@@ -47,6 +63,52 @@ void update_servo_pos() {
   // Check if it is time to update
   if ( !time_to_update_servo() ) return;
 
+  update_pose();
+  update_launcher();
+}
+
+void update_launcher() {
+  /* 
+  Update the servo in the launcher
+  */
+  if (!launching) return;
+
+  if ( abs(launcher_target - launcher_pos) <= launcher_steps_per_epoch ) {
+    // Check if the the location is close the the target
+    launcher_pos = launcher_target;
+
+    // Go back
+    if ( launcher_target == launcher_max ) {
+      launcher_target = launcher_min;
+      launcher_vel = -launcher_steps_per_epoch;
+    }
+    // Reset the launch seqence
+    else launching = false;
+  }
+  else {
+    // Move closer to the target
+    launcher_pos += launcher_vel;
+  }
+
+  // Keep pos within bounds
+  if ( launcher_pos < launcher_min) launcher_pos = launcher_min;
+  else if ( launcher_pos > launcher_max) launcher_pos = launcher_max;
+
+  launcher.write(launcher_pos);
+}
+
+void start_launch_sequence() {
+  if ( launching ) return; // Cant start in the middle of a launch
+
+  launching = true;
+  launcher_target = launcher_max;
+  launcher_vel = launcher_steps_per_epoch;
+}
+
+void update_pose() {
+  /* 
+  Update the servos resposible for Huberts pose
+  */
   for ( byte i = 0; i < N_SERVOS; i++ ) {
     
     if ( abs(move_pos[i] - curr_pos[i]) <= steps_per_epoch ) {
@@ -67,7 +129,7 @@ void update_servo_pos() {
   }
 }
 
-void update_servo_target_pos() {
+void update_target_pose() {
   /*
   Update the target position for every servo in Huberts body
   */
@@ -102,7 +164,7 @@ void update_servo_target_pos() {
   }
 }
 
-void read_target_pos() {
+void read_target_pose() {
   const int buffer_size = 2 * N_SERVOS;
   byte buffer[buffer_size];
 
@@ -121,7 +183,7 @@ void read_target_pos() {
   targetUpdate = true;
 }
 
-void write_curr_pos() {
+void write_curr_pose() {
   for (int i = 0; i < N_SERVOS; i++) {
     byte highByte = curr_pos[i] >> 8;
     byte lowByte = curr_pos[i] & 0xFF;
@@ -130,28 +192,36 @@ void write_curr_pos() {
   }
 }
 
+void send_status() {
+  unsigned char status_flag = 0;
+
+  if ( launching ) status_flag |= LAUNCH_FLAG;
+
+  bool moving = false;
+  for (int i = 0; i < N_SERVOS; i++) {
+    if ( move_pos[i] != curr_pos[i] ) moving = true;
+  }
+  if ( moving ) status_flag |= MOVE_FLAG;
+
+  Serial.write(status_flag);
+}
+
 void readSerial() {
   if (Serial.available() > 0) {
     char command = Serial.read(); // Read the next character from the buffer
 
     switch (command) {
       case 'm':
-        read_target_pos();        // Read a new position to move to
+        read_target_pose();        // Read a new position to move to
         break;
       case 'g':
-        write_curr_pos();
+        write_curr_pose();
         break;
       case 's':
-        for ( byte i = 0; i < N_SERVOS; i++ ) {
-          Serial.print("J");
-          Serial.print(i);
-          Serial.print(" = ");
-          Serial.print(curr_pos[i]);
-          Serial.print(" -> ");
-          Serial.print(move_pos[i]);
-          Serial.print(", ");
-        }
-        Serial.println();
+        send_status();
+        break;
+      case 'l':
+        start_launch_sequence();
         break;
       // Add more cases for other characters if needed
       default:
@@ -168,16 +238,18 @@ void setup() {
 	//Attach each joint servo
   for ( byte i = 0; i < N_SERVOS; i++ ) {
     servos[i].attach(servo_pins[i]);
-  }
-
-  for ( byte i = 0; i < N_SERVOS; i++ ) {
     curr_pos[i] = init_pos[i];
     move_pos[i] = init_pos[i];
+    servos[i].writeMicroseconds(curr_pos[i]);
   }
+
+  // Attach the launcher
+  launcher.attach(launcher_pin);
+  launcher.writeMicroseconds(launcher_pos);
 }
 
 void loop() {
   readSerial();
-  update_servo_target_pos();
+  update_target_pose();
   update_servo_pos();
 }

@@ -1,21 +1,23 @@
 import serial
-from enum import Enum, auto
+from enum import Enum, auto, IntFlag
 from typing import Optional
 import numpy as np
 from threading import Lock
 import time
 
 
-class HubertStatus(Enum):
-    IDLE = auto()           # No connection to the Hubert robot made
-    MOVING = auto()         # Connection established and waiting for instructions
-    NOT_CONNECTED = auto()  # Performing motion
+class HubertStatus(IntFlag):
+    LAUNCHING = auto()      # Currently in the process of launching a projectile
+    MOVING = auto()         # Performing motion
+    IDLE = auto()           # Connection established and waiting for instructions
+    NOT_CONNECTED = auto()  # No connection to the Hubert robot made
 
 
 class HubertCommand(Enum):
     SET_POSITION = ord('m')     # Set a new position (m for move)
     GET_POSITION = ord('g')     # Get the current position (g for get)
     GET_STATUS = ord('s')       # Get the current status of Hubert (s for status)
+    LAUNCH = ord('l')           # Start the launch of a projectile
 
 
 class Servo:
@@ -81,22 +83,27 @@ class Hubert:
         
 
     @property
-    def status(self):
+    def status(self) -> HubertStatus:
         """
-        Return the status of Hubert'
-
-        NOT_CONNECTED: No connection to the Hubert robot made
-        IDLE: Connection established and waiting for instructions
-        MOVING: Performing motion
+        Return the status of Hubert
         """
         if self.arduino is None:
             return HubertStatus.NOT_CONNECTED
+        # Ask arduino for status
+        with self.arduino_lock:
+            self._send(HubertCommand.GET_STATUS)
+            bs = self._read(1)
+        status_flag = HubertStatus(int.from_bytes(bs))
+        
+        # If any status message was in the status flag return the flag
+        if status_flag:
+            return status_flag
+        # Oterwise return the idel flag
         return HubertStatus.IDLE
     
     def set_position(self, **joints: float):
         """
         Send a new position to Hubert
-
         """
         # Update joint angles
         for j, v in joints.items():
@@ -129,14 +136,13 @@ class Hubert:
             angle = self.servos[i].pulse_to_angle(pulse_len)
             angles.append(angle)
         return angles
-    
-    def get_status(self) -> str:
+        
+    def launch(self) -> None:
         """
-        Get the status of Hubert
+        Launch a projectile
         """
         with self.arduino_lock:
-            self._send(HubertCommand.GET_STATUS)
-            return self._readline()
+            self._send(HubertCommand.LAUNCH)
 
     def _send(self, cmd: HubertCommand, *args: bytes):
         """
@@ -144,9 +150,6 @@ class Hubert:
         """
         assert self.arduino_lock.locked(), "You must lock the arduino before comunicaiton"
 
-        if self.status == HubertStatus.NOT_CONNECTED:
-            raise RuntimeError("Hubert is not connected")
-        
         msg = bytearray([cmd.value])
         for arg in args:
             msg.extend(arg)
@@ -160,11 +163,29 @@ class Hubert:
         assert self.arduino_lock.locked(), "You must lock the arduino before comunicaiton"
         bs = self.arduino.read(size=n)
         return bs
-    
-    def _readline(self) -> str:
-        assert self.arduino_lock.locked(), "You must lock the arduino before comunicaiton"
-        bs = self.arduino.readline()
-        return bs.decode('utf-8')
 
     def _convert_angle_to_pulse(self, joint_angles: list[float]) -> list[int]:
         return [servo.angle_to_pulse(angle) for servo, angle in zip(self.servos, joint_angles)]
+
+
+if __name__ == '__main__':
+    servos = [
+        Servo([-90, 0, 90], [700, 1600, 2070]),
+        Servo([0, 180], [2200, 1350]),
+        Servo([-90, 0, 90], [420, 1410, 2400]),
+        Servo([-90, 90], [600, 1500]),
+        Servo([-90, 90], [1170, 2100]),
+    ]
+    com = Hubert("COM3", baudrate=57600, servos=servos, timeout=0.1)
+    print(com.status.name)
+    com.connect()
+    print(com.status.name)
+    com.set_position(j1=90)
+    time.sleep(0.1)
+    print(com.status.name)
+    com.launch()
+    time.sleep(0.1)
+    print(com.status.name)
+    time.sleep(5)
+    print(com.status.name)
+    
