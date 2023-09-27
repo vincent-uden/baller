@@ -2,6 +2,17 @@ import numpy as np
 import cv2 as cv
 
 def get_target_position(frame):
+    """
+    Performs image analysis on input image, returns center positions of red objects
+
+    Parameters:
+    - frame (numpy.ndarray): array containing BGR values
+
+    Returns:
+    - x_pos: array containing pixel x-coordinates of red objects
+    - y_pos: array containing pixel y-coordinates of red objects
+    """
+
     x_pos = []
     y_pos = []
 
@@ -34,7 +45,15 @@ def get_target_position(frame):
 
 
 def get_magazine_count(frame):
+    """
+    Performs image analysis on input image, returns the number of green objects
 
+    Parameters:
+    - frame (numpy.ndarray): array containing BGR values
+
+    Returns:
+    - magazine_count: integer equal to number of green obects found
+    """
     magazine_count = 0
 
     gaussian_kernel = np.ones((5,5),np.float32)/25
