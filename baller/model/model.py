@@ -20,6 +20,7 @@ class Model3D:
         # Create a figure and 3D axis
         self.fig = fig or plt.figure(figsize=(8, 6))
         self.ax = ax or self.fig.add_subplot(111, projection='3d')
+        self.ax.set_aspect('equal')
 
         self.color = color
         self.linestyle = linestyle
@@ -36,6 +37,11 @@ class Model3D:
         if self.artist is not None:
             self.artist[0].set_visible(self.visable)
             self.update_canvas()
+
+    def update_color(self, color: str):
+        self.color = color
+        if self.artist is not None:
+            self.artist[0].set_color(self.color)
 
 
 class Hubert3DModel(Model3D):
@@ -55,6 +61,7 @@ class Hubert3DModel(Model3D):
         self.ax.set_xlim(X_MIN, X_MAX)
         self.ax.set_ylim(Y_MIN, Y_MAX)
         self.ax.set_zlim(Z_MIN, Z_MAX)
+        self.ax.set_aspect('equal')
 
         self.j1 = j1
         self.j2 = j2
@@ -158,6 +165,39 @@ class Launcher3DModel(Model3D):
         self.artist[0].set_3d_properties(z)
 
         self.update_canvas()
+
+
+class Target3DModel(Model3D):
+
+    def __init__(self, x: float, y: float, z: float, ax, fig, color: str = 'r', marker: str = 'o', markersize: int = 10) -> None:
+        super().__init__(ax, fig, color, "None")
+        self.marker = marker
+        self.markersize = markersize
+
+        self.x = x
+        self.y = y
+        self.z = z
+
+        # Increase the the plot width
+        self.ax.set_xlim(right=1.0)
+        self.ax.set_aspect('equal')
+
+        self.artist = self.ax.plot(
+            [self.x], [self.y], [self.z],
+            marker=self.marker,
+            color=self.color,
+            linestyle=self.linestyle,
+            markersize=self.markersize
+        )
+
+    def move_target(self, x: float, y: float, z: float) -> None:
+        self.x = x
+        self.y = y
+        self.z = z
+
+        self.artist[0].set_xdata([self.x])
+        self.artist[0].set_ydata([self.y])
+        self.artist[0].set_3d_properties([self.z])
 
 
 if __name__ == '__main__':

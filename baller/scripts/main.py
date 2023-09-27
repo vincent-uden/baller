@@ -4,8 +4,8 @@ import sys
 
 from baller.communication.hubert import Servo, Hubert
 from baller.model.slider import SliderWindow
-from baller.model.model import Hubert3DModel, Launcher3DModel
-from baller.inverse_kinematics.ik import target_pos_to_joint_angles
+from baller.model.model import Hubert3DModel, Launcher3DModel, Target3DModel
+from baller.inverse_kinematics.ik import target_pos_to_joint_angles, LAUNCH_PLANE_OFFSET
 
 
 hubert_com = None       # Handles communication with Hubert
@@ -13,6 +13,7 @@ hubert_model = None     # A 3D model of Hubert
 hubert_pose = None      # A pose estimator of Huberts actual pose
 
 launcher = None         # A model for the trajectory of a projectile from the launcher
+target = None           # A target to hit
 
 sw = None               # Window for sliders
 
@@ -23,9 +24,18 @@ def ik_callback(x: float, y: float, z: float, **_) -> None:
     """
     assert hubert_model is not None
     assert launcher is not None
+    assert target is not None
 
+    target.move_target(x, y, z)
     _j1, _j2, _j3, *_ = hubert_model.get_pose(units='rad')
-    j1, j2, j3 = target_pos_to_joint_angles(x, y, z, j1=_j1, j2=_j2, j3=_j3)
+    j1, j2, j3, dist = target_pos_to_joint_angles(x, y, z, j1=_j1, j2=_j2, j3=_j3)
+
+    if dist > 0.01:
+        # Miss with more than 1 cm
+        launcher.update_color('r')
+    else:
+        # Hit
+        launcher.update_color('g')
 
     hubert_model.move_arm(j1, j2, j3, units='rad')
     launcher.move_launcher(target_plane=x)
@@ -63,8 +73,8 @@ def parse_args() -> Namespace:
 
 servos = [
     Servo([-90, 0, 90], [700, 1600, 2070]),
-    Servo([0, 180], [1350, 2200]),
-    Servo([-90, 90], [1410, 2400]),
+    Servo([0, 180], [2200, 1350]),
+    Servo([-90, 0, 90], [420, 1410, 2400]),
     Servo([-90, 90], [600, 1500]),
     Servo([-90, 90], [1170, 2100]),
 ]
@@ -73,7 +83,7 @@ servos = [
 def main():
     args = parse_args()
 
-    global hubert_com, hubert_model, hubert_pose, launcher, sw
+    global hubert_com, hubert_model, hubert_pose, launcher, sw, target
 
     if args.conf is not None:
         # Assing variables from configuration file
@@ -85,16 +95,25 @@ def main():
         hubert_com.connect()
 
     if args.target_plane is not None:
+        # Target position
+        tx = args.target_plane
+        ty = -LAUNCH_PLANE_OFFSET
+        tz = 0.2
+
         hubert_model = Hubert3DModel()
 
-        launcher = Launcher3DModel(hubert_model, args.target_plane, hubert_model.ax, hubert_model.fig)
+        launcher = Launcher3DModel(hubert_model, tx, hubert_model.ax, hubert_model.fig)
+        target = Target3DModel(tx, ty, tz, ax=hubert_model.ax, fig=hubert_model.fig)
 
         sw = SliderWindow()
-        sw.add_slider("x", 0.3, 2.0, args.target_plane)
-        sw.add_slider("y", -0.5, 0.5, 0.0)
-        sw.add_slider("z", 0.0, 1.0, 0.5)
+        sw.add_slider("x", 0.3, 2.0, tx)
+        sw.add_slider("y", -0.5, 0.5, ty)
+        sw.add_slider("z", 0.0, 1.0, tz)
 
         sw.add_slider_callback(ik_callback)
+
+        # Call the callback so that it draws correctly the first time
+        ik_callback(tx, ty, tz)
     
     elif args.interactive:
         hubert_model = Hubert3DModel()

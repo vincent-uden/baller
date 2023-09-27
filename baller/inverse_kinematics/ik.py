@@ -3,7 +3,7 @@ from scipy.optimize import minimize
 from typing import Optional
 
 from baller.utils.hubert.constants import LAUNCH_PLANE_OFFSET
-from baller.trajectory_solver.trajectory_solver import trajectory_solver_from_joints
+from baller.trajectory_solver.trajectory_solver import trajectory_solver_from_joints, launcher_pitch
 
 
 def calculate_yaw_angle(x: float, y: float) -> float:
@@ -31,7 +31,7 @@ def target_pos_to_joint_angles(
         j1: Optional[float] = None,
         j2: Optional[float] = None,
         j3: Optional[float] = None,
-    ) -> tuple[float, float, float]:
+    ) -> tuple[float, float, float, float]:
     """
     Given a target position return the corresponding joint angles
 
@@ -56,15 +56,23 @@ def target_pos_to_joint_angles(
     if j3 is None:
         j3 = 0.0
 
-    res = minimize(func, [j2, j3])
+    # Constrain j2 and j3 to give a pitch that is in the range (-90, 90)
+    constraints = [
+        {
+            'type': 'ineq',
+            'fun': lambda js: np.pi / 2 - 0.0001 + launcher_pitch(js[0], js[1]),
+        },
+        {
+            'type': 'ineq',
+            'fun': lambda js:  np.pi / 2 - 0.0001 - launcher_pitch(js[0], js[1]),
+        }
+    ]
+    res = minimize(func, [j2, j3], constraints=constraints)
 
     dist = np.sqrt(func(res.x))
 
-    if dist < 0.01:
-        sholder, elbow = res.x
-        return yaw, sholder, elbow
-    
-    raise RuntimeError(f"Best solution misses with {dist*100} cm")
+    sholder, elbow = res.x
+    return yaw, sholder, elbow, dist
 
 
 if __name__ == '__main__':
