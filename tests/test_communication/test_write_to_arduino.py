@@ -17,7 +17,8 @@ def test_send(mocker, cmd):
     hubert.arduino = mock_arduino
 
     # Try to send a message
-    hubert._send(cmd)
+    with hubert.arduino_lock:
+        hubert._send(cmd)
 
     # Assert that we tried to write to the arduino
     expected = bytearray(chr(cmd.value).encode('utf-8'))
@@ -28,19 +29,19 @@ def test_send(mocker, cmd):
         ('joints', 'joint_encoding'),
         (
             (
-                [0, 0, 0], 
+                {'j1': 0, 'j2': 0, 'j3': 0},
                 bytearray([0x00, 0x00, 0x00, 0x00, 0x00, 0x00])
             ),
             (
-                [255, 255, 255], 
+                {'j1': 255, 'j2': 255, 'j3': 255},
                 bytearray([0x00, 0xff, 0x00, 0xff, 0x00, 0xff])
             ),
             (
-                [256, 256, 256], 
+                {'j1': 256, 'j2': 256, 'j3': 256},
                 bytearray([0x01, 0x00, 0x01, 0x00, 0x01, 0x00])
             ),
             (
-                [1000, 258, 17], 
+                {'j1': 1000, 'j2': 258, 'j3': 17},
                 bytearray([0x03, 0xe8, 0x01, 0x02, 0x00, 0x11])
             ),
         )
@@ -61,7 +62,7 @@ def test_set_position(mocker, joints, joint_encoding):
     hubert.arduino = mock_arduino
 
     # Try to send a position
-    hubert.set_position(joints)
+    hubert.set_position(**joints)
 
     # Assert that we tried to write to the arduino
     cmd_byte = bytearray(chr(HubertCommand.SET_POSITION.value).encode('utf-8'))

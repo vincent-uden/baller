@@ -3,7 +3,7 @@ import numpy as np
 from baller.utils.hubert.forward_kinematics import launcher_pos
 
 
-V0 = 10.0    # m/s
+V0 = 3.0    # m/s
 g = 9.82    # m/s^2
 
 PITCH_OFFSET = np.pi / 2
@@ -45,7 +45,14 @@ def trajectory_solver_from_launcher_pos(x: float, y: float, z: float, pitch: flo
     return target_plane, yf, zf
 
 
+def launcher_pitch(j2: float, j3: float) -> float:
+    """
+    Get the launcher position from the robot pose
+    """
+    return j2 + j3 + PITCH_OFFSET - np.pi / 2
+
+
 def trajectory_solver_from_joints(j1: float, j2: float, j3: float, target_plane: float) -> tuple[float, float, float]:
     xl, yl, zl = launcher_pos(j1, j2, j3)
-    pitch = j2 + j3 + PITCH_OFFSET - np.pi / 2
+    pitch = launcher_pitch(j2, j3)
     return trajectory_solver_from_launcher_pos(xl, yl, zl, pitch, j1, target_plane=target_plane)
