@@ -6,6 +6,7 @@ from baller.communication.hubert import Servo, Hubert
 from baller.model.slider import SliderWindow
 from baller.model.model import Hubert3DModel, Launcher3DModel, Target3DModel
 from baller.inverse_kinematics.ik import target_pos_to_joint_angles, LAUNCH_PLANE_OFFSET
+import baller.trajectory_solver.trajectory_solver as ts
 
 
 hubert_com = None       # Handles communication with Hubert
@@ -18,13 +19,15 @@ target = None           # A target to hit
 sw = None               # Window for sliders
 
 
-def ik_callback(x: float, y: float, z: float, **_) -> None:
+def ik_callback(x: float, y: float, z: float, v0: float, **_) -> None:
     """
     Perform inverse kinematics
     """
     assert hubert_model is not None
     assert launcher is not None
     assert target is not None
+
+    ts.V0 = v0
 
     target.move_target(x, y, z)
     _j1, _j2, _j3, *_ = hubert_model.get_pose(units='rad')
@@ -72,11 +75,11 @@ def parse_args() -> Namespace:
 
 
 servos = [
-    Servo([-90, 0, 90], [700, 1600, 2070]),
-    Servo([0, 180], [2200, 1350]),
-    Servo([-90, 0, 90], [420, 1410, 2400]),
-    Servo([-90, 90], [600, 1500]),
-    Servo([-90, 90], [1170, 2100]),
+    Servo([-45, 0, 90], [2150, 1620, 690]),
+    Servo([0, 90], [2250, 1350]),
+    Servo([-90, 0, 90], [600, 1400, 2400]),
+    Servo([-90, 0, 90], [2400, 1500, 600]),
+    Servo([0, 90], [2100, 1200]),
 ]
 
 
@@ -109,11 +112,15 @@ def main():
         sw.add_slider("x", 0.3, 2.0, tx)
         sw.add_slider("y", -0.5, 0.5, ty)
         sw.add_slider("z", 0.0, 1.0, tz)
+        sw.add_slider("v0", 1.0, 10.0, ts.V0)
 
         sw.add_slider_callback(ik_callback)
 
+        if hubert_com is not None:
+            sw.add_button("launch", [lambda x: hubert_com.launch()])
+
         # Call the callback so that it draws correctly the first time
-        ik_callback(tx, ty, tz)
+        ik_callback(tx, ty, tz, ts.V0)
     
     elif args.interactive:
         hubert_model = Hubert3DModel()
@@ -126,6 +133,7 @@ def main():
         
         if hubert_com is not None:
             sw.add_slider_callback(hubert_com.set_position)
+            sw.add_button("launch", [lambda x: hubert_com.launch()])
 
     if args.visual_mode and hubert_com is not None:
         fig = None if hubert_model is None else hubert_model.fig

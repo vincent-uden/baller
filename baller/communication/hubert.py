@@ -93,7 +93,7 @@ class Hubert:
         with self.arduino_lock:
             self._send(HubertCommand.GET_STATUS)
             bs = self._read(1)
-        status_flag = HubertStatus(int.from_bytes(bs))
+        status_flag = HubertStatus(int.from_bytes(bs, byteorder='big'))
         
         # If any status message was in the status flag return the flag
         if status_flag:

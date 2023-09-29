@@ -18,8 +18,8 @@ float servo_vel[N_SERVOS];
 float curr_pos_float[N_SERVOS];
 
 // Launcher position
-const int launcher_min = 550;
-const int launcher_max = 2150;
+const int launcher_min = 1300;
+const int launcher_max = 2300;
 int launcher_pos = launcher_min;
 int launcher_target = launcher_min;
 int launcher_vel;
