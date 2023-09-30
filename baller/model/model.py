@@ -1,10 +1,12 @@
 import numpy as np
 import matplotlib.pyplot as plt
 from typing import Optional, Literal
+import time
 
 from baller.utils.hubert.constants import L2, L3, L6, L8, L9
 from baller.utils.hubert.forward_kinematics import joint1pos, joint2pos, joint3pos
 from baller.trajectory_solver.trajectory_solver import trajectory_solver_from_launcher_pos, launcher_pitch
+from baller.model.hubert import HubertModel
 
 X_MIN = -L6 - L8 - L9
 X_MAX = L6 + L8 + L9
@@ -44,7 +46,7 @@ class Model3D:
             self.artist[0].set_color(self.color)
 
 
-class Hubert3DModel(Model3D):
+class Hubert3DModel(Model3D, HubertModel):
 
     def __init__(self, j1: float = 0, j2: float = 0, j3: float = 0, ax = None, fig = None, color: str = 'b', linestyle: str = '-'):
         """
@@ -63,36 +65,36 @@ class Hubert3DModel(Model3D):
         self.ax.set_zlim(Z_MIN, Z_MAX)
         self.ax.set_aspect('equal')
 
-        self.j1 = j1
-        self.j2 = j2
-        self.j3 = j3
+        self.joints = {
+            'j1': j1,
+            'j2': j2,
+            'j3': j3,
+            'j4': 0,
+            'j5': 0,
+        }
 
         # Get the inital arm position
-        x, y, z = self.arm_pos()
+        x, y, z = self._arm_pos()
 
         # Plot the initial lines with three segments
         self.artist = self.ax.plot(x, y, z, color=self.color, linewidth=2, linestyle=self.linestyle)
 
-    def get_pose(self, units: Literal['rad', 'deg'] = 'rad') -> tuple[float, float, float]:
+    def get_pose(self, units: Literal['rad', 'deg'] = 'rad') -> dict[str, float]:
         if units == 'deg':
-            j1 = np.rad2deg(self.j1)
-            j2 = np.rad2deg(self.j2)
-            j3 = np.rad2deg(self.j3)
+            joints = {j: float(np.rad2deg(v)) for j, v in self.joints.items()}
         else:
-            j1 = self.j1
-            j2 = self.j2
-            j3 = self.j3
+            joints = {j: float(v) for j, v in self.joints.items()}
 
-        return j1, j2, j3
+        return joints
 
 
-    def arm_pos(self):
+    def _arm_pos(self) -> tuple[list[float], list[float], list[float]]:
         """
         Return the x, y and z positoin of all joints in three lists
         """
-        joint1 = joint1pos(self.j1)
-        joint2 = joint2pos(self.j1, self.j2)
-        joint3 = joint3pos(self.j1, self.j2, self.j3)
+        joint1 = joint1pos(**self.joints)
+        joint2 = joint2pos(**self.joints)
+        joint3 = joint3pos(**self.joints)
 
         # Extract coordinates for the segments
         x0, y0, z0 = [0, 0, 0]
@@ -103,25 +105,22 @@ class Hubert3DModel(Model3D):
 
         return [x0, x1, x2, x3, x4], [y0, y1, y2, y3, y4], [z0, z1, z2, z3, z4]
 
-    def move_arm(self, j1: float, j2: float, j3: float, units: Literal['rad', 'deg'] = 'rad', **_):
+    def set_pose(self, units: Literal['rad', 'deg'] = 'rad', **joints: float):
         # Get the arm position
 
-        if units == 'deg':
-            self.j1 = np.deg2rad(j1)
-            self.j2 = np.deg2rad(j2)
-            self.j3 = np.deg2rad(j3)
-        else:
-            self.j1 = j1
-            self.j2 = j2
-            self.j3 = j3
+        for j, v in joints.items():
+            self.joints[j] = v if units == 'rad' else np.deg2rad(v)
 
-        x, y, z = self.arm_pos()
+        x, y, z = self._arm_pos()
 
         self.artist[0].set_xdata(x)
         self.artist[0].set_ydata(y)
         self.artist[0].set_3d_properties(z)
 
         self.update_canvas()
+
+    def wait_unitl_idle(self) -> None:
+        time.sleep(1)
 
 
 class Launcher3DModel(Model3D):
@@ -138,10 +137,10 @@ class Launcher3DModel(Model3D):
         self.artist = self.ax.plot(x, y, z, color=self.color, linestyle=self.linestyle)
 
     def parabola(self) -> tuple[list[float], list[float], list[float]]:
-        hand_x, hand_y, hand_z = joint3pos(self.hubert.j1, self.hubert.j2, self.hubert.j3)
+        hand_x, hand_y, hand_z = joint3pos(**self.hubert.joints)
 
-        pitch = launcher_pitch(self.hubert.j2, self.hubert.j3)
-        yaw = self.hubert.j1
+        pitch = launcher_pitch(self.hubert.joints['j2'], self.hubert.joints['j3'])
+        yaw = self.hubert.joints['j1']
 
         xs = np.linspace(hand_x, self.target_plane)
         ys = [hand_y]

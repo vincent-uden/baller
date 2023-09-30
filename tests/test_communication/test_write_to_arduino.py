@@ -62,7 +62,7 @@ def test_set_position(mocker, joints, joint_encoding):
     hubert.arduino = mock_arduino
 
     # Try to send a position
-    hubert.set_position(**joints)
+    hubert.set_pose(**joints)
 
     # Assert that we tried to write to the arduino
     cmd_byte = bytearray(chr(HubertCommand.SET_POSITION.value).encode('utf-8'))

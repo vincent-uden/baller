@@ -1,4 +1,5 @@
 import pytest
+import numpy as np
 
 from baller.communication.hubert import Servo, Hubert, HubertCommand
 
@@ -7,19 +8,19 @@ from baller.communication.hubert import Servo, Hubert, HubertCommand
         ('joints', 'joint_encoding'),
         (
             (
-                [0, 0, 0], 
+                {'j1':0, 'j2':0, 'j3': 0}, 
                 b'\x00\x00\x00\x00\x00\x00',
             ),
             (
-                [255, 255, 255], 
+                {'j1':255, 'j2':255, 'j3': 255}, 
                 b'\x00\xff\x00\xff\x00\xff',
             ),
             (
-                [256, 256, 256], 
+                {'j1':256, 'j2':256, 'j3': 256}, 
                 b'\x01\x00\x01\x00\x01\x00',
             ),
             (
-                [1000, 258, 17], 
+                {'j1':1000, 'j2':258, 'j3': 17}, 
                 b'\x03\xe8\x01\x02\x00\x11',
             ),
         )
@@ -42,11 +43,11 @@ def test_get_position(mocker, joints, joint_encoding):
     hubert.arduino = mock_arduino
 
     # Try to send a position
-    pos = hubert.get_position()
+    pos = hubert.get_pose(units='deg')
 
     # Assert that we call the arduino with the correct command
     expected = bytearray(chr(HubertCommand.GET_POSITION.value).encode('utf-8'))
     mock_arduino.write.assert_called_with(expected)
 
     # Assert that we read the correct values
-    assert pos == joints
+    assert all([np.isclose(pos[j], joints[j]) for j in joints])

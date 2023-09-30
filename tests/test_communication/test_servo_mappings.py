@@ -1,4 +1,5 @@
 import pytest
+import numpy as np
 
 from baller.communication.hubert import Servo
 
@@ -88,4 +89,4 @@ def test_pulse_to_angle_conversion_piecewise(pulse_width, angle):
     pulses = [0, 60, 100]
     servo = Servo(angles, pulses)
 
-    assert servo.pulse_to_angle(pulse_width) == angle
+    assert np.isclose(servo.pulse_to_angle(pulse_width), angle)
