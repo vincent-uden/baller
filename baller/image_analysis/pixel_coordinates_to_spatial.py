@@ -1,4 +1,4 @@
-def pixel_to_spatial(pixel_x,pixel_y):
+def pixel_to_spatial(pixel_x ,pixel_y):
     """
     Converts pixel coordinates from a 640x480 webcam to spatial coordinates of Hubert
 
@@ -15,9 +15,9 @@ def pixel_to_spatial(pixel_x,pixel_y):
     pixel_to_meter_ratio = 0.0011228070175
 
     #origin of spatial_y is estimated as pixel_x = 320px
-    pixel_x0 = 320
+    pixel_x0 = 640
     #origin of spatial_z is estimated as pixel_y = 808.64 (pixel y coordinates is inverted)
-    pixel_y0 = 808.64
+    pixel_y0 = 360
 
     spatial_y = (pixel_x-pixel_x0) * pixel_to_meter_ratio
     spatial_z = (pixel_y0-pixel_y) * pixel_to_meter_ratio

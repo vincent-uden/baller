@@ -11,6 +11,7 @@ from baller.model.model import Hubert3DModel, Launcher3DModel, Target3DModel
 from baller.inverse_kinematics.ik import target_pos_to_joint_angles, LAUNCH_PLANE_OFFSET
 import baller.trajectory_solver.trajectory_solver as ts
 from baller.model.pose_model import StaticPose
+from baller.finite_state_machine.fsm import FSM
 
 
 hubert_com: Optional[Hubert] = None                 # Handles communication with Hubert
@@ -22,6 +23,7 @@ target: Optional[Target3DModel] = None              # A target to hit
 pose_recorder: Optional[StaticPose] = None          # Record a pose
 
 sw: Optional[SliderWindow] = None                   # Window for sliders
+fsm: Optional[FSM] = None
 
 
 def ik_callback(x: float, y: float, z: float, v0: float, **_) -> None:
@@ -135,7 +137,6 @@ def replay_pose(pose: str, *_):
     t.start()
     
 
-
 def setup_replay(args):
     global hubert_model, hubert_com, sw, pose_recorder
 
@@ -150,6 +151,14 @@ def setup_replay(args):
     assert len(pose_recorder.posedict) > 0, f"No poses in {pose_recorder.posefile}"
     for pose in pose_recorder.posedict:
         sw.add_button(pose, [functools.partial(replay_pose, pose)])
+
+
+def setup_run(args):
+    global fsm, hubert_com
+
+    assert hubert_com is not None
+
+    fsm = FSM(hubert_com, target_plane=args.target_plane)
 
 
 class NotImplementedAction(Action):
@@ -186,6 +195,9 @@ def parse_args() -> Namespace:
     replay_parser.set_defaults(func=setup_replay)
     replay_parser.add_argument('-i', '--infile', default="./pose.yml", help="The input file were the poses are stored")
 
+    run_parser = subparsers.add_parser("run", help="run Hubert")
+    run_parser.set_defaults(func=setup_run)
+    run_parser.add_argument('-x', '--target_plane', type=float, default=0.5, help="The distance to the target plane")
 
     return parser.parse_args()
 
@@ -233,7 +245,12 @@ def main():
     
     if sw is not None:
         sw.draw()
-    
+
+    if fsm is not None:
+        fsm.run()
+        # t = Thread(target=fsm.run)
+        # t.start()
+
     figs = figs = list(map(plt.figure, plt.get_fignums()))
     if len(figs) > 0:
         plt.show()

@@ -35,8 +35,8 @@ def get_target_position(frame):
     (numLabels, labels, stats, centroids) = output
     
     for id in range(numLabels):
-        if stats[id, cv.CC_STAT_WIDTH] < 300 and stats[id, cv.CC_STAT_WIDTH] > 20:
-            if stats[id, cv.CC_STAT_HEIGHT] < 300 and stats[id, cv.CC_STAT_HEIGHT] > 20:
+        if stats[id, cv.CC_STAT_WIDTH] < 300 and stats[id, cv.CC_STAT_WIDTH] > 100:
+            if stats[id, cv.CC_STAT_HEIGHT] < 300 and stats[id, cv.CC_STAT_HEIGHT] > 100:
                 x_pos.append(centroids[id][0])
                 y_pos.append(centroids[id][1])
 
