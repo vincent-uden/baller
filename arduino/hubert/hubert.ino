@@ -18,7 +18,7 @@ float servo_vel[N_SERVOS];
 float curr_pos_float[N_SERVOS];
 
 // Launcher position
-const int launcher_min = 1300;
+const int launcher_min = 600;
 const int launcher_max = 2300;
 int launcher_pos = launcher_min;
 int launcher_target = launcher_min;
@@ -30,7 +30,7 @@ const int steps_per_epoch = 6;
 
 // Servo limits
 const int pos_min[N_SERVOS] = {560, 750, 550, 550, 950};
-const int pos_max[N_SERVOS] = {2330, 2200, 2400, 2340, 2400};
+const int pos_max[N_SERVOS] = {2330, 2300, 2400, 2340, 2400};
 
 // Timings
 const long interval = 20;           // Servos operate on 50Hz -> delay of 20 ms

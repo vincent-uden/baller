@@ -2,6 +2,8 @@ import matplotlib.pyplot as plt
 from argparse import ArgumentParser, Namespace, Action
 import sys
 from typing import Optional
+from threading import Thread
+import functools
 
 from baller.communication.hubert import Servo, Hubert
 from baller.model.slider import SliderWindow
@@ -55,7 +57,7 @@ def get_pos_callback() -> None:
     assert hubert_com is not None
     assert hubert_pose is not None
 
-    joints = hubert_com.get_pose()
+    joints = hubert_com.get_pose(units='deg')
     hubert_pose.set_pose(**joints, units='deg')
 
 
@@ -104,14 +106,13 @@ def setup_target(args: Namespace):
 
 
 def record_pose(posename: str):
+    assert pose_recorder is not None
     pose_recorder.record(posename)
     pose_recorder.save_pose_dict()
 
 
 def setup_record(args: Namespace):
     global hubert_model, hubert_com, sw, pose_recorder
-
-    print(args)
     
     hubert_model = Hubert3DModel()
     pose_recorder = StaticPose(hubert_model, posefile=args.outfile)
@@ -126,6 +127,29 @@ def setup_record(args: Namespace):
     
     if hubert_com is not None:
         sw.add_slider_callback(lambda **joints: hubert_com.set_pose(**joints, units='deg'))
+
+
+def replay_pose(pose: str, *_):
+    assert pose_recorder is not None
+    t = Thread(target=lambda: pose_recorder.take_pose(pose))
+    t.start()
+    
+
+
+def setup_replay(args):
+    global hubert_model, hubert_com, sw, pose_recorder
+
+    if hubert_com is None:
+        hubert_model = Hubert3DModel()
+        pose_recorder = StaticPose(hubert_model, posefile=args.infile)
+    else:
+        pose_recorder = StaticPose(hubert_com, posefile=args.infile)
+
+    sw = SliderWindow()
+
+    assert len(pose_recorder.posedict) > 0, f"No poses in {pose_recorder.posefile}"
+    for pose in pose_recorder.posedict:
+        sw.add_button(pose, [functools.partial(replay_pose, pose)])
 
 
 class NotImplementedAction(Action):
@@ -157,6 +181,11 @@ def parse_args() -> Namespace:
     record_parser.set_defaults(func=setup_record)
     record_parser.add_argument('pose', help="The name of the motion")
     record_parser.add_argument('-o', '--outfile', default="./pose.yml", help="The output file to save the motion to. If it exists it will append to it")
+
+    replay_parser = subparsers.add_parser("replay", aliases=["rep"], help="replay a fixed motion for Hubert")
+    replay_parser.set_defaults(func=setup_replay)
+    replay_parser.add_argument('-i', '--infile', default="./pose.yml", help="The input file were the poses are stored")
+
 
     return parser.parse_args()
 
@@ -194,6 +223,9 @@ def main():
         fig = None if hubert_model is None else hubert_model.fig
         ax = None if hubert_model is None else hubert_model.ax
         hubert_pose = Hubert3DModel(ax=ax, fig=fig, color='orange', linestyle='--')
+
+        if fig is None:
+            fig = hubert_pose.fig
 
         timer = fig.canvas.new_timer(interval=50)
         timer.add_callback(get_pos_callback)

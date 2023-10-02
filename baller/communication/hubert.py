@@ -182,7 +182,7 @@ class Hubert(HubertModel):
         return bs
 
     def _convert_angle_to_pulse(self, joint_angles: list[float]) -> list[int]:
-        return [servo.angle_to_pulse(angle) for servo, angle in zip(self.servos, joint_angles)]
+        return [servo.angle_to_pulse(angle, units='rad') for servo, angle in zip(self.servos, joint_angles)]
 
 
 if __name__ == '__main__':

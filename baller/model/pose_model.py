@@ -1,6 +1,7 @@
 import os
 import yaml
 from typing import Optional
+from threading import Lock
 
 from baller.model.hubert import HubertModel
 
@@ -13,6 +14,8 @@ class StaticPose:
         self.hubert = hubert
 
         self.load_pose_file(posefile)
+
+        self.pose_lock = Lock()
 
     def load_pose_file(self, posefile: Optional[str] = None) -> None:
         if posefile is not None:
@@ -30,9 +33,10 @@ class StaticPose:
         if posename not in self.posedict:
             raise KeyError(f"{posename} is not a recogniced pose")
         
-        for pose in self.posedict[posename]:
-            self.hubert.set_pose(**pose)
-            self.hubert.wait_unitl_idle()
+        with self.pose_lock:
+            for pose in self.posedict[posename]:
+                self.hubert.set_pose(**pose, units='deg')
+                self.hubert.wait_unitl_idle()
 
     def save_pose_dict(self, posefile: Optional[str] = None) -> None:
         if posefile is not None:
