@@ -21,10 +21,10 @@ def get_target_position(frame):
 
     hsv = cv.cvtColor(gaussian_filter, cv.COLOR_BGR2HSV)
 
-    red_lower1 = np.array([0,70,50])
-    red_upper1 = np.array([10,255,255])
+    red_lower1 = np.array([0,100,150])
+    red_upper1 = np.array([5,255,255])
 
-    red_lower2 = np.array([170,70,50])
+    red_lower2 = np.array([170,100,150])
     red_upper2 = np.array([179,255,255])
 
     red_mask1 = cv.inRange(hsv, red_lower1, red_upper1)
