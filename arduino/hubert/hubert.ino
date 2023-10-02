@@ -18,12 +18,12 @@ float servo_vel[N_SERVOS];
 float curr_pos_float[N_SERVOS];
 
 // Launcher position
-const int launcher_min = 600;
-const int launcher_max = 2300;
+const int launcher_min = 800;
+const int launcher_max = 1800;
 int launcher_pos = launcher_min;
 int launcher_target = launcher_min;
 int launcher_vel;
-const int launcher_steps_per_epoch = 12;
+const int launcher_steps_per_epoch = 60;
 
 // Servo speed
 const int steps_per_epoch = 6;
