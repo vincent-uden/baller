@@ -47,15 +47,13 @@ class FSM:
         self.hubert = hubert
         self.target_plane = target_plane
 
-        self.targets: list[Target] = []
-
         self.interactive = interactive
         self.verbose = verbose
 
         # Variables
-        self.magazine_count = 0
-
         self.state = OperationState.IDLE
+        self.magazine_count = 0
+        self.targets: list[Target] = []
 
     def targeting(self):
         # Reset the pose
@@ -92,6 +90,7 @@ class FSM:
         try:
             self._loop()
         except (KeyboardInterrupt, QuitMainLoop):
+            # TODO: Stop all ongoing movments on Hubert
             self._print("Quiting main loop", verbosity_level=VerbosityLevel.Info)
             if self._wait_for_interaction("Continue running? yes/no").lower() == "yes":
                 self.run()
@@ -139,9 +138,11 @@ class FSM:
             "Press enter to start Hubert",
             interactivity_level=InteractivityLevel.Autonomous,
         )
+        self.hubert.set_pose(j1=0, j2=0, j3=0, j4=0, j5=0)
+        self.hubert.wait_unitl_idle()
     
     def reloading(self):
-        nb_shoots = self._wait_for_interaction("Reload and input number of shoots", interactivity_level=InteractivityLevel.Autonomous)
+        nb_shoots = self._wait_for_interaction("Reload and input number of shoots", interactivity_level=InteractivityLevel.Autonomous, default="0")
         try:
             self.magazine_count = int(nb_shoots)
         except ValueError:
