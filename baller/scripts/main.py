@@ -158,7 +158,7 @@ def setup_run(args):
 
     assert hubert_com is not None
 
-    fsm = FSM(hubert_com, target_plane=args.target_plane)
+    fsm = FSM(hubert_com, target_plane=args.target_plane, interactive=args.interactive, verbose=args.verbose)
 
 
 class NotImplementedAction(Action):
@@ -198,6 +198,8 @@ def parse_args() -> Namespace:
     run_parser = subparsers.add_parser("run", help="run Hubert")
     run_parser.set_defaults(func=setup_run)
     run_parser.add_argument('-x', '--target_plane', type=float, default=0.5, help="The distance to the target plane")
+    run_parser.add_argument('-i', '--interactive', action="count", default=0)
+    run_parser.add_argument('-v', '--verbose', action="count", default=0)
 
     return parser.parse_args()
 
