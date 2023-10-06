@@ -157,7 +157,7 @@ def setup_run(args):
     global fsm, hubert_com
 
     assert hubert_com is not None
-
+    ts.V0 = args.v0
     fsm = FSM(hubert_com, target_plane=args.target_plane, interactive=args.interactive, verbose=args.verbose)
 
 
@@ -198,8 +198,9 @@ def parse_args() -> Namespace:
     run_parser = subparsers.add_parser("run", help="run Hubert")
     run_parser.set_defaults(func=setup_run)
     run_parser.add_argument('-x', '--target_plane', type=float, default=0.5, help="The distance to the target plane")
-    run_parser.add_argument('-i', '--interactive', action="count", default=0)
-    run_parser.add_argument('-v', '--verbose', action="count", default=0)
+    run_parser.add_argument('--v0', type=float, default=ts.V0, help="Projectile velocity")
+    run_parser.add_argument('-i', '--interactive', action="count", default=0, help="Increase interactivity")
+    run_parser.add_argument('-v', '--verbose', action="count", default=0, help="Increase verbosity")
 
     return parser.parse_args()
 

@@ -60,11 +60,11 @@ def target_pos_to_joint_angles(
     constraints = [
         {
             'type': 'ineq',
-            'fun': lambda js: np.pi / 2 - 0.0001 + launcher_pitch(js[0], js[1]),
+            'fun': lambda js: np.pi / 2 - 0.1 + launcher_pitch(js[0], js[1]),
         },
         {
             'type': 'ineq',
-            'fun': lambda js:  np.pi / 2 - 0.0001 - launcher_pitch(js[0], js[1]),
+            'fun': lambda js:  np.pi / 2 - 0.1 - launcher_pitch(js[0], js[1]),
         }
     ]
     res = minimize(func, [j2, j3], constraints=constraints)

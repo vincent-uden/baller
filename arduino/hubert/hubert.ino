@@ -5,10 +5,10 @@
 
 //Servos
 Servo servos[N_SERVOS];
-const int servo_pins[N_SERVOS] = {3, 9, 10, 5, 6};
+const int servo_pins[N_SERVOS] = {3, 9, 11, 5, 6};
 
 Servo launcher;
-const int launcher_pin = 11;
+const int launcher_pin = 10;
 
 // Servo position
 int init_pos[N_SERVOS] = {1600, 2200, 1410, 1500, 2100};
@@ -18,12 +18,12 @@ float servo_vel[N_SERVOS];
 float curr_pos_float[N_SERVOS];
 
 // Launcher position
-const int launcher_min = 800;
-const int launcher_max = 1800;
+const int launcher_min = 600;
+const int launcher_max = 1400;
 int launcher_pos = launcher_min;
 int launcher_target = launcher_min;
 int launcher_vel;
-const int launcher_steps_per_epoch = 60;
+const int launcher_steps_per_epoch = 40;
 
 // Servo speed
 const int steps_per_epoch = 6;

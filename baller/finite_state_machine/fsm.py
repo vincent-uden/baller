@@ -1,10 +1,12 @@
 import cv2
 from dataclasses import dataclass
 from enum import Enum, IntEnum, auto
+import numpy as np
 
 from baller.communication.hubert import Hubert
 from baller.image_analysis.image_analysis import get_target_position
 from baller.image_analysis.pixel_coordinates_to_spatial import pixel_to_spatial
+from baller.image_analysis.calibrate import calibrate_camera
 from baller.inverse_kinematics.ik import target_pos_to_joint_angles
 
 
@@ -54,26 +56,47 @@ class FSM:
         self.state = OperationState.IDLE
         self.magazine_count = 0
         self.targets: list[Target] = []
+        self.pixel_to_meter_ratio = 0
+        self.camera_offset = 0
 
-    def targeting(self):
+    def calibrate(self):
         # Reset the pose
-        self.hubert.set_pose(j1=0, j2=0, j3=0)
+        self.hubert.set_pose(j1=0, j2=0, j3=0, j4=0, j5=0, units="deg")
         self.hubert.wait_unitl_idle()
 
+        frame = self.read_frame()
+
+        self.pixel_to_meter_ratio, self.camera_offset = calibrate_camera(frame)
+
+        self._print(
+            f"pix2m: {self.pixel_to_meter_ratio}\noffset: {self.camera_offset}",
+            verbosity_level=VerbosityLevel.Info,
+        )
+
+    def read_frame(self) -> np.ndarray:
         ret, frame = self.camera.read()
         if not ret:
             raise RuntimeError("Could not read frame")
+
+        return frame
+
+    def targeting(self):
+        # Reset the pose
+        self.hubert.set_pose(j1=0, j2=0, j3=90, j4=0, j5=0, units="deg")
+        self.hubert.wait_unitl_idle()
+
+        frame = self.read_frame()
 
         ys, zs = get_target_position(frame)
         self.targets = []
 
         for py, pz in zip(ys, zs):
-            _, y, z = pixel_to_spatial(py, pz)
+            _, y, z = pixel_to_spatial(py, pz, self.pixel_to_meter_ratio, self.camera_offset)
             self.targets.append(Target(self.target_plane, y, z))
 
             cv2.circle(frame, (int(py), int(pz)), 5, (255, 0, 0))
-
-        if self.verbose <= VerbosityLevel.Info:
+        
+        if  VerbosityLevel.Info <= self.verbose:
             # If we are above the lowest verbosity level
             cv2.imshow("frame", frame)
             cv2.waitKey(100)
@@ -92,10 +115,14 @@ class FSM:
         except (KeyboardInterrupt, QuitMainLoop):
             # TODO: Stop all ongoing movments on Hubert
             self._print("Quiting main loop", verbosity_level=VerbosityLevel.Info)
-            if self._wait_for_interaction("Continue running? yes/no").lower() == "yes":
+            if self._wait_for_interaction("Continue running? yes/no", interactivity_level=InteractivityLevel.Manual).lower() == "yes":
                 self.run()
             else:
                 print("Quiting Hubert")
+        except Exception as e:
+            self._print(f"Unknown exception:\n{e}")
+            self._wait_for_interaction("Waitng before quiting", interactivity_level=InteractivityLevel.Manual)
+            raise e
 
     def _loop(self):
         while True:
@@ -138,10 +165,14 @@ class FSM:
             "Press enter to start Hubert",
             interactivity_level=InteractivityLevel.Autonomous,
         )
-        self.hubert.set_pose(j1=0, j2=0, j3=0, j4=0, j5=0)
+        self.hubert.set_pose(j1=0, j2=0, j3=0, j4=0, j5=0, units="deg")
         self.hubert.wait_unitl_idle()
+        self.calibrate()
     
     def reloading(self):
+        self.hubert.set_pose(j1=0, j2=0, j3=90, j4=0, j5=0, units='deg')
+        self.hubert.wait_unitl_idle()
+
         nb_shoots = self._wait_for_interaction("Reload and input number of shoots", interactivity_level=InteractivityLevel.Autonomous, default="0")
         try:
             self.magazine_count = int(nb_shoots)
@@ -168,6 +199,8 @@ class FSM:
             VerbosityLevel.Debug,
         )
         pose = self.hubert.get_pose(units='rad')
+        print(pose)
+        # new_pose = target_pos_to_joint_angles(target.x, target.y, target.z, j1=0, j2=0, j3=0)
         new_pose = target_pos_to_joint_angles(target.x, target.y, target.z, j1=pose['j1'], j2=pose['j2'], j3=pose['j3'])
 
         self._print(
@@ -192,14 +225,14 @@ class FSM:
         """
         Print msg if the verbosity level is less is high enough
         """
-        if self.verbose <= verbosity_level:
+        if verbosity_level <= self.verbose:
             print(msg)
 
     def _wait_for_interaction(self, msg: str = "Next", interactivity_level: InteractivityLevel = InteractivityLevel.Autonomous, default: str = "") -> str:
         """
         Wait for human interaction if interactivity level is high enough
         """
-        if self.interactive <= interactivity_level:
+        if  interactivity_level <= self.interactive:
             ans = input(msg + ": ")
             if ans == 'q':
                 raise QuitMainLoop

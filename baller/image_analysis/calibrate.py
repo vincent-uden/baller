@@ -29,15 +29,36 @@ def calibrate_camera(frame):
     (numLabels, labels, stats, centroids) = output
 
     for id in range(numLabels):
-        if stats[id, cv.CC_STAT_WIDTH] < 96/2 and stats[id, cv.CC_STAT_WIDTH] > 76/2:
-            if stats[id, cv.CC_STAT_HEIGHT] < 96/2 and stats[id, cv.CC_STAT_HEIGHT] > 76/2:
+        if stats[id, cv.CC_STAT_WIDTH] < 96 and stats[id, cv.CC_STAT_WIDTH] > 50:
+            if stats[id, cv.CC_STAT_HEIGHT] < 96 and stats[id, cv.CC_STAT_HEIGHT] > 50:
                 x.append(centroids[id][0])
                 y.append(centroids[id][1])
 
     assert len(x) == 2, "Found more/fewer calibration points"
 
+    # cv.imshow("frame", frame)
+    # cv.imshow("yellow_mask", yellow_mask)
+
+    # for px, py in zip(x, y):
+    #     cv.circle(frame, (int(px), int(py)), 5, ((255, 0, 0)))
+
+    # cv.imshow("hits", frame)
+
+    # cv.waitKey(100)
+
     pixel_to_meter_ratio = 0.335 / abs(x[0]-x[1])
 
     camera_offset = 0.5 - (720 - y[0]) * pixel_to_meter_ratio 
-
+    
     return pixel_to_meter_ratio, camera_offset
+
+
+if __name__ == '__main__':
+    camera = cv.VideoCapture(0)
+    while True:
+        ret, frame = camera.read()
+
+        cv.imshow("frame", frame)
+
+        if cv.waitKey(100) & 0xff == ord('b'):
+            cv.imwrite("img.png", frame)
