@@ -31,6 +31,8 @@ def target_pos_to_joint_angles(
         j1: Optional[float] = None,
         j2: Optional[float] = None,
         j3: Optional[float] = None,
+        j2_limits: tuple[Optional[float], Optional[float]] = (None, None),
+        j3_limits: tuple[Optional[float], Optional[float]] = (None, None),
     ) -> tuple[float, float, float, float]:
     """
     Given a target position return the corresponding joint angles
@@ -67,7 +69,14 @@ def target_pos_to_joint_angles(
             'fun': lambda js:  np.pi / 2 - 0.1 - launcher_pitch(js[0], js[1]),
         }
     ]
-    res = minimize(func, [j2, j3], constraints=constraints)
+
+    start_pitch = launcher_pitch(j2, j3)
+    if start_pitch <= -np.pi / 2:
+        j2 += (-start_pitch - np.pi / 2) + 0.1
+    elif start_pitch >= np.pi / 2:
+        j2 -= (start_pitch - np.pi / 2) + 0.1
+
+    res = minimize(func, [j2, j3], constraints=constraints, bounds=[j2_limits, j3_limits])
 
     dist = np.sqrt(func(res.x))
 
