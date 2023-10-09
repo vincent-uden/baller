@@ -54,6 +54,7 @@ def get_magazine_count(frame):
     Returns:
     - magazine_count: integer equal to number of green obects found
     """
+
     magazine_count = 0
 
     gaussian_kernel = np.ones((5,5),np.float32)/25
@@ -61,8 +62,8 @@ def get_magazine_count(frame):
 
     hsv = cv.cvtColor(gaussian_filter, cv.COLOR_BGR2HSV)
 
-    green_lower = np.array([40, 40,40])
-    green_upper = np.array([70, 255,255])
+    green_lower = np.array([70, 40,40])
+    green_upper = np.array([90, 255,255])
 
     green_mask = cv.inRange(hsv, green_lower, green_upper)
 
@@ -70,9 +71,8 @@ def get_magazine_count(frame):
     (numLabels, labels, stats, centroids) = output
     
     for id in range(numLabels):
-        if stats[id, cv.CC_STAT_WIDTH] < 40 and stats[id, cv.CC_STAT_WIDTH] > 2:
-            if stats[id, cv.CC_STAT_HEIGHT] < 80 and stats[id, cv.CC_STAT_HEIGHT] > 2:
+        if stats[id, cv.CC_STAT_WIDTH] < 140 and stats[id, cv.CC_STAT_WIDTH] > 80:
+            if stats[id, cv.CC_STAT_HEIGHT] < 80 and stats[id, cv.CC_STAT_HEIGHT] > 40:
                 magazine_count += 1
-                
 
     return magazine_count
