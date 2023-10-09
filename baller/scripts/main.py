@@ -25,6 +25,14 @@ pose_recorder: Optional[StaticPose] = None          # Record a pose
 sw: Optional[SliderWindow] = None                   # Window for sliders
 fsm: Optional[FSM] = None
 
+servos = [
+    Servo([-45, 0, 90], [2150, 1620, 690]),
+    Servo([0, 90], [2250, 1350]),
+    Servo([-90, 0, 90], [600, 1400, 2400]),
+    Servo([-90, 0, 90], [2400, 1500, 600]),
+    Servo([0, 90], [2100, 1200]),
+]
+
 
 def ik_callback(x: float, y: float, z: float, v0: float, **_) -> None:
     """
@@ -38,7 +46,14 @@ def ik_callback(x: float, y: float, z: float, v0: float, **_) -> None:
 
     target.move_target(x, y, z)
     _joints = hubert_model.get_pose(units='rad')
-    j1, j2, j3, dist = target_pos_to_joint_angles(x, y, z, j1=_joints['j1'], j2=_joints['j2'], j3=_joints['j3'])
+    j1, j2, j3, dist = target_pos_to_joint_angles(
+        x, y, z, 
+        j1=_joints['j1'], 
+        j2=_joints['j2'], 
+        j3=_joints['j3'], 
+        j2_limits=servos[1].servo_range(units='rad'),
+        j3_limits=servos[2].servo_range(units='rad'),
+    )
 
     if dist > 0.01:
         # Miss with more than 1 cm
@@ -157,8 +172,8 @@ def setup_run(args):
     global fsm, hubert_com
 
     assert hubert_com is not None
-
-    fsm = FSM(hubert_com, target_plane=args.target_plane)
+    ts.V0 = args.v0
+    fsm = FSM(hubert_com, target_plane=args.target_plane, interactive=args.interactive, verbose=args.verbose)
 
 
 class NotImplementedAction(Action):
@@ -198,17 +213,11 @@ def parse_args() -> Namespace:
     run_parser = subparsers.add_parser("run", help="run Hubert")
     run_parser.set_defaults(func=setup_run)
     run_parser.add_argument('-x', '--target_plane', type=float, default=0.5, help="The distance to the target plane")
+    run_parser.add_argument('--v0', type=float, default=ts.V0, help="Projectile velocity")
+    run_parser.add_argument('-i', '--interactive', action="count", default=0, help="Increase interactivity")
+    run_parser.add_argument('-v', '--verbose', action="count", default=0, help="Increase verbosity")
 
     return parser.parse_args()
-
-
-servos = [
-    Servo([-45, 0, 90], [2150, 1620, 690]),
-    Servo([0, 90], [2250, 1350]),
-    Servo([-90, 0, 90], [600, 1400, 2400]),
-    Servo([-90, 0, 90], [2400, 1500, 600]),
-    Servo([0, 90], [2100, 1200]),
-]
 
 
 def main():

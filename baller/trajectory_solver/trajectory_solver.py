@@ -3,10 +3,10 @@ import numpy as np
 from baller.utils.hubert.forward_kinematics import launcher_pos
 
 
-V0 = 3.0    # m/s
+V0 = 2.4    # m/s
 g = 9.82    # m/s^2
 
-PITCH_OFFSET = np.pi / 2
+PITCH_OFFSET = 0
 
 
 def trajectory_solver_from_launcher_pos(x: float, y: float, z: float, pitch: float, yaw: float, target_plane: float) -> tuple[float, float, float]:
@@ -33,7 +33,7 @@ def trajectory_solver_from_launcher_pos(x: float, y: float, z: float, pitch: flo
     vy = V0 * np.sin(yaw) * np.cos(pitch)
     vz = V0 * np.sin(pitch)
 
-    assert vx > 0, "Projectile will never hit target"
+    assert vx > 0, f"Projectile will never hit target when vx = {vx}, yaw = {np.rad2deg(yaw)} and pitch = {np.rad2deg(pitch)}"
 
     # Calculate time of flight
     dx = target_plane - x

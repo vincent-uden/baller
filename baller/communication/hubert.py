@@ -54,7 +54,7 @@ class Servo:
         angle = angle if units == 'rad' else np.rad2deg(angle)
         return float(angle)
     
-    def servo_range(self, units: Literal['rad', 'deg'] = 'deg'):
+    def servo_range(self, units: Literal['rad', 'deg'] = 'deg') -> tuple[float, float]:
         min_a = np.min(self.angles)
         max_a = np.max(self.angles)
         if units == 'deg':
