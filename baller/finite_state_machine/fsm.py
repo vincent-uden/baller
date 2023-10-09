@@ -4,10 +4,11 @@ from enum import Enum, IntEnum, auto
 import numpy as np
 
 from baller.communication.hubert import Hubert
-from baller.image_analysis.image_analysis import get_target_position
+from baller.image_analysis.image_analysis import get_target_position, get_magazine_count
 from baller.image_analysis.pixel_coordinates_to_spatial import pixel_to_spatial
 from baller.image_analysis.calibrate import calibrate_camera
 from baller.inverse_kinematics.ik import target_pos_to_joint_angles
+from baller.model.pose_model import StaticPose
 
 
 @dataclass
@@ -43,7 +44,7 @@ class QuitMainLoop(Exception):
 
 class FSM:
 
-    def __init__(self, hubert: Hubert, target_plane: float, interactive: int = 0, verbose: int = 0) -> None:
+    def __init__(self, hubert: Hubert, target_plane: float, interactive: int = 0, verbose: int = 0, posefile: str = "pose.yml") -> None:
         self.camera = cv2.VideoCapture(0)
         
         self.hubert = hubert
@@ -58,6 +59,9 @@ class FSM:
         self.targets: list[Target] = []
         self.pixel_to_meter_ratio = 0
         self.camera_offset = 0
+
+        # Pose
+        self.pose_model = StaticPose(hubert=self.hubert, posefile=posefile)
 
     def calibrate(self):
         # Reset the pose
@@ -96,7 +100,7 @@ class FSM:
 
             cv2.circle(frame, (int(py), int(pz)), 5, (255, 0, 0))
         
-        if  VerbosityLevel.Info <= self.verbose:
+        if VerbosityLevel.Info <= self.verbose:
             # If we are above the lowest verbosity level
             cv2.imshow("frame", frame)
             cv2.waitKey(100)
@@ -173,18 +177,23 @@ class FSM:
         self.hubert.set_pose(j1=0, j2=0, j3=90, j4=0, j5=0, units='deg')
         self.hubert.wait_unitl_idle()
 
-        nb_shoots = self._wait_for_interaction("Reload and input number of shoots", interactivity_level=InteractivityLevel.Autonomous, default="0")
-        try:
-            self.magazine_count = int(nb_shoots)
-        except ValueError:
-            print(f"{nb_shoots} is not a valid interger. Please try again")
-            self.reloading()
+        self._wait_for_interaction("Reload and press enter when done", interactivity_level=InteractivityLevel.Autonomous)
 
     def check_magazine(self):
         """
         Check the magazine
         """
-        pass
+        self.pose_model.take_pose("check_magazine")
+        frame = self.read_frame()
+        self.magazine_count = get_magazine_count(frame)
+
+        if VerbosityLevel.Info <= self.verbose:
+            # If we are above the lowest verbosity level
+            cv2.imshow("magazine", frame)
+            cv2.waitKey(100)
+
+        self._print(f"Found {self.magazine_count} balls in the magazine", verbosity_level=VerbosityLevel.Info)
+        self._wait_for_interaction(interactivity_level=InteractivityLevel.Assisted)
 
     def shoot(self):
         """

@@ -67,12 +67,20 @@ def get_magazine_count(frame):
 
     green_mask = cv.inRange(hsv, green_lower, green_upper)
 
+
     output = cv.connectedComponentsWithStats(green_mask, 8, cv.CV_32S)
     (numLabels, labels, stats, centroids) = output
+
+    # cv.rectangle(green_mask, (0,0), (50, 30), (255,))
+    # cv.imshow("magazine mask", green_mask)
+    # cv.waitKey(100)
     
     for id in range(numLabels):
-        if stats[id, cv.CC_STAT_WIDTH] < 140 and stats[id, cv.CC_STAT_WIDTH] > 80:
-            if stats[id, cv.CC_STAT_HEIGHT] < 80 and stats[id, cv.CC_STAT_HEIGHT] > 40:
+        if stats[id, cv.CC_STAT_WIDTH] < 140 and stats[id, cv.CC_STAT_WIDTH] > 40:
+            if stats[id, cv.CC_STAT_HEIGHT] < 80 and stats[id, cv.CC_STAT_HEIGHT] > 15:
                 magazine_count += 1
+
+    if magazine_count > 1:
+        magazine_count += 1
 
     return magazine_count
