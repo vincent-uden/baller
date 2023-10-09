@@ -9,6 +9,7 @@ from baller.image_analysis.pixel_coordinates_to_spatial import pixel_to_spatial
 from baller.image_analysis.calibrate import calibrate_camera
 from baller.inverse_kinematics.ik import target_pos_to_joint_angles
 from baller.model.pose_model import StaticPose
+from baller.image_analysis.gestures import thumb_recognizer
 
 
 @dataclass
@@ -177,7 +178,12 @@ class FSM:
         self.hubert.set_pose(j1=0, j2=0, j3=90, j4=0, j5=0, units='deg')
         self.hubert.wait_unitl_idle()
 
-        self._wait_for_interaction("Reload and press enter when done", interactivity_level=InteractivityLevel.Autonomous)
+        if self.interactive > InteractivityLevel.Autonomous:
+            self._wait_for_interaction("Reload and press enter when done", interactivity_level=InteractivityLevel.Autonomous)
+        else:
+            frame = self.read_frame()
+            while not thumb_recognizer(frame):
+                frame = self.read_frame()
 
     def check_magazine(self):
         """
