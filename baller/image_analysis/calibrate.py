@@ -29,8 +29,8 @@ def calibrate_camera(frame):
     (numLabels, labels, stats, centroids) = output
 
     for id in range(numLabels):
-        if stats[id, cv.CC_STAT_WIDTH] < 96 and stats[id, cv.CC_STAT_WIDTH] > 50:
-            if stats[id, cv.CC_STAT_HEIGHT] < 96 and stats[id, cv.CC_STAT_HEIGHT] > 50:
+        if stats[id, cv.CC_STAT_WIDTH] < 150 and stats[id, cv.CC_STAT_WIDTH] > 50:
+            if stats[id, cv.CC_STAT_HEIGHT] < 150 and stats[id, cv.CC_STAT_HEIGHT] > 50:
                 x.append(centroids[id][0])
                 y.append(centroids[id][1])
 

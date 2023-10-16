@@ -11,6 +11,7 @@ from baller.image_analysis.calibrate import calibrate_camera
 from baller.inverse_kinematics.ik import target_pos_to_joint_angles
 from baller.model.pose_model import StaticPose
 from baller.image_analysis.gestures import thumb_recognizer
+from baller.utils.hubert.forward_kinematics import launcher_pos
 
 
 @dataclass
@@ -88,7 +89,7 @@ class FSM:
 
     def targeting(self):
         # Reset the pose
-        self.hubert.set_pose(j4=0, j5=10.0, units='deg')
+        self.hubert.set_pose(j1=0.0, j4=0.0, j5=10.0, units='deg')
         self.hubert.wait_unitl_idle()
 
         frame = self.read_frame()
@@ -124,6 +125,8 @@ class FSM:
             if self._wait_for_interaction("Continue running? yes/no", interactivity_level=InteractivityLevel.Manual).lower() == "yes":
                 self.run()
             else:
+                print("Returning home")
+                self.pose_model.take_pose('home')
                 print("Quiting Hubert")
         except Exception as e:
             self._print(f"Unknown exception:\n{e}")
@@ -218,17 +221,26 @@ class FSM:
         pose = self.hubert.get_pose(units='rad')
         shoulder_limits = (0.0, np.deg2rad(60.0))
         elbow_limits = self.hubert.servos[2].servo_range(units='rad')
-        new_pose = target_pos_to_joint_angles(target.x, target.y, target.z, j1=pose['j1'], j2=pose['j2'], j3=pose['j3'], j2_limits=shoulder_limits, j3_limits=elbow_limits)
+        j1, j2, j3, dist = target_pos_to_joint_angles(target.x, target.y, target.z, j1=pose['j1'], j2=pose['j2'], j3=pose['j3'], j2_limits=shoulder_limits, j3_limits=elbow_limits)
+
+        if dist > 0.01:
+            print(f"No solution found. Will miss target with {dist*100} cm")
 
         self._print(
-            f"Setting pose to: j1 = {new_pose[0]}, j2 = {new_pose[1]}, j3 = {new_pose[2]}",
+            f"Setting pose to: j1 = {np.rad2deg(j1)}, j2 = {np.rad2deg(j2)}, j3 = {np.rad2deg(j3)}",
             verbosity_level=VerbosityLevel.Debug,
         )
 
         self._wait_for_interaction(interactivity_level=InteractivityLevel.Manual)
 
-        self.hubert.set_pose(j1=new_pose[0], j2=new_pose[1], j3=new_pose[2], units='rad')
+        self.hubert.set_pose(j1=j1, j2=j2, j3=j3, units='rad')
         self.hubert.wait_unitl_idle()
+    
+        x, y, z = launcher_pos(j1=j1, j2=j2, j3=j3)    
+        self._print(
+            f"Launcher is not at {x:.2f}, {y:.2f}, {z:.2f}",
+            verbosity_level=VerbosityLevel.Debug,
+        )
         
         self._wait_for_interaction(
             "Ready to launch",

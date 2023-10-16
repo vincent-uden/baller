@@ -17,7 +17,7 @@ def pixel_to_spatial(pixel_x ,pixel_y, pixel_to_meter_ratio, camera_offset):
     pixel_x0 = 1280/2
     pixel_y0 = 720
 
-    spatial_y = (pixel_x0 - pixel_x) * pixel_to_meter_ratio
+    spatial_y = (pixel_x0 - pixel_x) * pixel_to_meter_ratio - 0.03
     spatial_z = (pixel_y0 - pixel_y) * pixel_to_meter_ratio + camera_offset
 
     spatial_x = 1.69 #distance from Hubert to wall
