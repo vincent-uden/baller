@@ -20,6 +20,7 @@ class HubertCommand(Enum):
     GET_POSITION = ord('g')     # Get the current position (g for get)
     GET_STATUS = ord('s')       # Get the current status of Hubert (s for status)
     LAUNCH = ord('l')           # Start the launch of a projectile
+    RELOAD = ord('r')           # Reload: Play the reload sound
 
 
 class Servo:
@@ -160,6 +161,10 @@ class Hubert(HubertModel):
         """
         with self.arduino_lock:
             self._send(HubertCommand.LAUNCH)
+
+    def play_reload_sound(self) -> None:
+        with self.arduino_lock:
+            self._send(HubertCommand.RELOAD)
 
     def _send(self, cmd: HubertCommand, *args: bytes):
         """

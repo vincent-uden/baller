@@ -20,8 +20,8 @@ def calibrate_camera(frame):
 
     hsv = cv.cvtColor(gaussian_filter, cv.COLOR_BGR2HSV)
 
-    yellow_lower = np.array([25,0,200])
-    yellow_upper = np.array([40,255,255])
+    yellow_lower = np.array([50,20,20])
+    yellow_upper = np.array([100,255,255])
 
     yellow_mask = cv.inRange(hsv, yellow_lower, yellow_upper)
 
@@ -34,10 +34,11 @@ def calibrate_camera(frame):
                 x.append(centroids[id][0])
                 y.append(centroids[id][1])
 
-    assert len(x) == 2, "Found more/fewer calibration points"
-
     # cv.imshow("frame", frame)
     # cv.imshow("yellow_mask", yellow_mask)
+
+    assert len(x) == 2, "Found more/fewer calibration points"
+
 
     # for px, py in zip(x, y):
     #     cv.circle(frame, (int(px), int(py)), 5, ((255, 0, 0)))
@@ -48,7 +49,7 @@ def calibrate_camera(frame):
 
     pixel_to_meter_ratio = 0.335 / abs(x[0]-x[1])
 
-    camera_offset = 0.5 - (720 - y[0]) * pixel_to_meter_ratio 
+    camera_offset = 0.57 - (720 - y[0]) * pixel_to_meter_ratio
     
     return pixel_to_meter_ratio, camera_offset
 
@@ -57,8 +58,8 @@ if __name__ == '__main__':
     camera = cv.VideoCapture(0)
     while True:
         ret, frame = camera.read()
+        try:
+            calibrate_camera(frame)
+        except:
+            cv.waitKey()
 
-        cv.imshow("frame", frame)
-
-        if cv.waitKey(100) & 0xff == ord('b'):
-            cv.imwrite("img.png", frame)

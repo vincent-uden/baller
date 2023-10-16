@@ -4,6 +4,7 @@ import sys
 from typing import Optional
 from threading import Thread
 import functools
+import numpy as np
 
 from baller.communication.hubert import Servo, Hubert
 from baller.model.slider import SliderWindow
@@ -26,11 +27,11 @@ sw: Optional[SliderWindow] = None                   # Window for sliders
 fsm: Optional[FSM] = None
 
 servos = [
-    Servo([-45, 0, 90], [2150, 1620, 690]),
+    Servo([-45, 0, 90], [2070, 1620, 680]),
     Servo([0, 90], [2250, 1350]),
-    Servo([-90, 0, 90], [600, 1400, 2400]),
-    Servo([-90, 0, 90], [2400, 1500, 600]),
-    Servo([0, 90], [2100, 1200]),
+    Servo([-90, 0, 72], [600, 1570, 2300]),
+    Servo([-75, 0, 90], [2300, 1530, 600]),
+    Servo([0, 90], [2150, 1200]),
 ]
 
 
@@ -51,7 +52,7 @@ def ik_callback(x: float, y: float, z: float, v0: float, **_) -> None:
         j1=_joints['j1'], 
         j2=_joints['j2'], 
         j3=_joints['j3'], 
-        j2_limits=servos[1].servo_range(units='rad'),
+        j2_limits=(0, np.deg2rad(60)),
         j3_limits=servos[2].servo_range(units='rad'),
     )
 

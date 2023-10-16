@@ -142,15 +142,20 @@ class Launcher3DModel(Model3D):
         pitch = launcher_pitch(self.hubert.joints['j2'], self.hubert.joints['j3'])
         yaw = self.hubert.joints['j1']
 
-        xs = np.linspace(hand_x, self.target_plane)
+        _xs = np.linspace(hand_x, self.target_plane)
+        xs = [_xs[0]]
         ys = [hand_y]
         zs = [hand_z]
-        for x in xs[1:]:
-            _, y, z = trajectory_solver_from_launcher_pos(hand_x, hand_y, hand_z, pitch=pitch, yaw=yaw, target_plane=x)
+        for x in _xs[1:]:
+            try:
+                _, y, z = trajectory_solver_from_launcher_pos(hand_x, hand_y, hand_z, pitch=pitch, yaw=yaw, target_plane=x)
+            except AssertionError:
+                break
+            xs.append(x)
             ys.append(y)
             zs.append(z)
         
-        return xs.tolist(), ys, zs
+        return xs, ys, zs
     
     def move_launcher(self, target_plane: Optional[float] = None):
         # Get the arm position'

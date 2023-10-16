@@ -1,7 +1,19 @@
 #define N_SERVOS 5 // We are not using the gripper
+#define N_NOTES_RELOAD 8
 
 #include <Arduino.h>
 #include <Servo.h>
+
+#include "notes.h"
+
+// Melodies
+const int sound_pin = 8;
+int reload_melody[N_NOTES_RELOAD] = {
+  NOTE_C4, NOTE_G3, NOTE_G3, NOTE_A3, NOTE_G3, 0, NOTE_B3, NOTE_C4
+};
+int reload_notes_duration[N_NOTES_RELOAD] = {
+  4, 8, 8, 4, 4, 4, 4, 4
+};
 
 //Servos
 Servo servos[N_SERVOS];
@@ -212,22 +224,53 @@ void readSerial() {
 
     switch (command) {
       case 'm':
-        read_target_pose();        // Read a new position to move to
+        read_target_pose();         // Move: Read a new position from serial
         break;
-      case 'g':
+      case 'g':                     // Get: Write current position to serial
         write_curr_pose();
         break;
-      case 's':
+      case 's':                     // Status: Send status over serial
         send_status();
         break;
-      case 'l':
+      case 'l':                     // Launch: Launch the projectile
         start_launch_sequence();
+        break;
+      case 'r':                     // Reload: Play the reload sound
+        play_reload_melody();
         break;
       // Add more cases for other characters if needed
       default:
         // Handle unknown commands
         break;
     }
+  }
+}
+
+void play_reload_melody() {
+  delay(interval); // Wait for any servos to update
+  // iterate over the notes of the melody:
+  for (int thisNote = 0; thisNote < N_NOTES_RELOAD; thisNote++) {
+
+    // to calculate the note duration, take one second divided by the note type.
+
+    //e.g. quarter note = 1000 / 4, eighth note = 1000/8, etc.
+
+    int noteDuration = 1000 / reload_notes_duration[thisNote];
+
+    tone(sound_pin, reload_melody[thisNote], noteDuration);
+
+    // to distinguish the notes, set a minimum time between them.
+
+    // the note's duration + 30% seems to work well:
+
+    int pauseBetweenNotes = noteDuration * 1.30;
+
+    delay(pauseBetweenNotes);
+
+    // stop the tone playing:
+
+    noTone(sound_pin);
+
   }
 }
 

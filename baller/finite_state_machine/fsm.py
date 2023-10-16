@@ -2,6 +2,7 @@ import cv2
 from dataclasses import dataclass
 from enum import Enum, IntEnum, auto
 import numpy as np
+import time
 
 from baller.communication.hubert import Hubert
 from baller.image_analysis.image_analysis import get_target_position, get_magazine_count
@@ -66,7 +67,7 @@ class FSM:
 
     def calibrate(self):
         # Reset the pose
-        self.hubert.set_pose(j1=0, j2=0, j3=0, j4=0, j5=0, units="deg")
+        self.pose_model.take_pose('home')
         self.hubert.wait_unitl_idle()
 
         frame = self.read_frame()
@@ -87,7 +88,7 @@ class FSM:
 
     def targeting(self):
         # Reset the pose
-        self.hubert.set_pose(j1=0, j2=0, j3=90, j4=0, j5=0, units="deg")
+        self.hubert.set_pose(j4=0, j5=10.0, units='deg')
         self.hubert.wait_unitl_idle()
 
         frame = self.read_frame()
@@ -170,13 +171,14 @@ class FSM:
             "Press enter to start Hubert",
             interactivity_level=InteractivityLevel.Autonomous,
         )
-        self.hubert.set_pose(j1=0, j2=0, j3=0, j4=0, j5=0, units="deg")
+        self.pose_model.take_pose('home')
         self.hubert.wait_unitl_idle()
         self.calibrate()
     
     def reloading(self):
-        self.hubert.set_pose(j1=0, j2=0, j3=90, j4=0, j5=0, units='deg')
+        self.pose_model.take_pose('reload')
         self.hubert.wait_unitl_idle()
+        self.hubert.play_reload_sound()
 
         if self.interactive > InteractivityLevel.Autonomous:
             self._wait_for_interaction("Reload and press enter when done", interactivity_level=InteractivityLevel.Autonomous)
@@ -214,9 +216,9 @@ class FSM:
             VerbosityLevel.Debug,
         )
         pose = self.hubert.get_pose(units='rad')
-        print(pose)
-        # new_pose = target_pos_to_joint_angles(target.x, target.y, target.z, j1=0, j2=0, j3=0)
-        new_pose = target_pos_to_joint_angles(target.x, target.y, target.z, j1=pose['j1'], j2=pose['j2'], j3=pose['j3'])
+        shoulder_limits = (0.0, np.deg2rad(60.0))
+        elbow_limits = self.hubert.servos[2].servo_range(units='rad')
+        new_pose = target_pos_to_joint_angles(target.x, target.y, target.z, j1=pose['j1'], j2=pose['j2'], j3=pose['j3'], j2_limits=shoulder_limits, j3_limits=elbow_limits)
 
         self._print(
             f"Setting pose to: j1 = {new_pose[0]}, j2 = {new_pose[1]}, j3 = {new_pose[2]}",

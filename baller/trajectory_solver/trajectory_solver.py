@@ -6,7 +6,7 @@ from baller.utils.hubert.forward_kinematics import launcher_pos
 V0 = 2.4    # m/s
 g = 9.82    # m/s^2
 
-PITCH_OFFSET = 0
+PITCH_OFFSET = -np.deg2rad(11)
 
 
 def trajectory_solver_from_launcher_pos(x: float, y: float, z: float, pitch: float, yaw: float, target_plane: float) -> tuple[float, float, float]:
